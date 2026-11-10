@@ -63,4 +63,44 @@ public final class FirebaseRefs {
     public static DatabaseReference ranking(String season, String mode, String uid) {
         return rankings(season, mode).child(uid);
     }
+
+    public static DatabaseReference mail(String uid) {
+        return root().child("mail").child(uid);
+    }
+
+    public static DatabaseReference friends(String uid) {
+        return root().child("friends").child(uid);
+    }
+
+    public static DatabaseReference directory() {
+        return root().child("directory");
+    }
+
+    public static DatabaseReference directoryEntry(String uid) {
+        return directory().child(uid);
+    }
+
+    public static DatabaseReference guilds() {
+        return root().child("guilds");
+    }
+
+    public static DatabaseReference guild(String gid) {
+        return guilds().child(gid);
+    }
+
+    public static DatabaseReference guildIndex() {
+        return root().child("guildIndex");
+    }
+
+    public static DatabaseReference guildDirectory() {
+        return root().child("guildDirectory");
+    }
+
+    public static DatabaseReference guildDirectoryEntry(String gid) {
+        return guildDirectory().child(gid);
+    }
+
+    public static DatabaseReference guildOf(String uid) {
+        return player(uid).child("guild");
+    }
 }

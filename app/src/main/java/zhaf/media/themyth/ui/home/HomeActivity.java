@@ -32,14 +32,19 @@ import zhaf.media.themyth.core.Texts;
 import zhaf.media.themyth.core.UiErrors;
 import zhaf.media.themyth.data.model.Currencies;
 import zhaf.media.themyth.data.model.PlayerProfile;
+import zhaf.media.themyth.data.repository.MailRepository;
+import zhaf.media.themyth.data.repository.SocialRepository;
 import zhaf.media.themyth.data.staticdata.CharacterCatalog;
 import zhaf.media.themyth.data.staticdata.CharacterTemplate;
 import zhaf.media.themyth.databinding.ActivityHomeBinding;
 import zhaf.media.themyth.ui.arena.ArenaActivity;
 import zhaf.media.themyth.ui.battle.BattleActivity;
 import zhaf.media.themyth.ui.formation.FormationActivity;
+import zhaf.media.themyth.ui.friends.FriendsActivity;
+import zhaf.media.themyth.ui.guild.GuildActivity;
 import zhaf.media.themyth.ui.inventory.InventoryActivity;
 import zhaf.media.themyth.ui.login.LoginActivity;
+import zhaf.media.themyth.ui.mail.MailActivity;
 import zhaf.media.themyth.ui.roster.RosterActivity;
 import zhaf.media.themyth.ui.shop.ShopActivity;
 import zhaf.media.themyth.ui.summon.SummonActivity;
@@ -104,6 +109,14 @@ public class HomeActivity extends AppCompatActivity {
                 v -> startActivity(new Intent(this, FormationActivity.class)));
         binding.btnInventory.setOnClickListener(
                 v -> startActivity(new Intent(this, InventoryActivity.class)));
+        binding.btnMail.setOnClickListener(
+                v -> startActivity(new Intent(this, MailActivity.class)));
+        binding.btnFriends.setOnClickListener(
+                v -> startActivity(new Intent(this, FriendsActivity.class)));
+        binding.btnGuild.setOnClickListener(
+                v -> startActivity(new Intent(this, GuildActivity.class)));
+
+        new MailRepository().seedWelcome(uid);
     }
 
     @Override
@@ -150,6 +163,7 @@ public class HomeActivity extends AppCompatActivity {
                         Texts.pretty(profile.rank)
                 ));
                 hideLoading();
+                publishDirectory(profile);
                 if (!formationLoaded) {
                     formationLoaded = true;
                     loadFormation();
@@ -198,8 +212,24 @@ public class HomeActivity extends AppCompatActivity {
         listenersAttached = false;
     }
 
-    private void loadFormation() {
-        FirebaseRefs.formation(uid).addListenerForSingleValueEvent(new ValueEventListener() {
+    private void publishDirectory(PlayerProfile profile) {
+        FirebaseRefs.guildOf(uid).child("id").addListenerForSingleValueEvent(
+                new ValueEventListener() {
+                    @Override
+                    public void onDataChange(DataSnapshot snapshot) {
+                        SocialRepository.publishDirectory(uid, profile.username,
+                                profile.level, snapshot.getValue(String.class));
+                    }
+
+                    @Override
+                    public void onCancelled(DatabaseError error) {
+                        SocialRepository.publishDirectory(uid, profile.username,
+                                profile.level, null);
+                    }
+                });
+    }
+
+    private void loadFormation() {        FirebaseRefs.formation(uid).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot snapshot) {
                 List<String> names = new ArrayList<>();

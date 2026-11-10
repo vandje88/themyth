@@ -81,6 +81,40 @@ Bot = snapshot sintetis `bot_{uid}` dengan rating & CP mendekati pemain, dibangu
 - Casual: sama, tanpa rating.
 - Friend Battle: pemilik room membuat kode 6 karakter di `battles/rooms/{code}`; teman join; battle async dengan snapshot.
 
+### 2.4 Sosial, Guild, Mail (M8)
+
+Semua fitur sosial berjalan langsung di RTDB tanpa Cloud Functions dan tanpa node `presence`.
+
+**Directory pemain.** `directory/{uid}` ditulis pemiliknya saat Home/Friends/Guild dibuka: `{uid, name, avatar, level, guildId, updatedAt}`. Pencarian teman memakai `directory/{uid}` dengan UID lengkap (bukan query nama) untuk menghindari enumerasi pengguna.
+
+**Teman (`SocialRepository`).**
+1. `sendRequest` menulis `friends/{target}/requests/{me}` dan `friends/{me}/outgoing/{target}` dalam satu update.
+2. `acceptRequest` menulis `list` di kedua sisi, lalu menghapus request/outgoing.
+3. `removeFriend` menghapus kedua entri; `sendGift` membatasi 1×/hari per penerima (50 coin).
+4. `claimGifts` memakai transaksi pemain dengan penanda `social/giftClaims/{from_day}` lalu menghapus `gifts/{fromUid}`.
+5. Batas 50 teman. Kode hasil `FriendLogic`: `SELF`, `MISSING`, `ALREADY_FRIEND`, `PENDING`, `FULL`, `INCOMING_PENDING`.
+
+**Guild (`GuildRepository`).**
+- `create`: cek `guildIndex/{nameLower}` → transaksi pemain (potong 200.000 coin, set `players/{uid}/guild`) → satu `updateChildren` menulis `info`, `members/{uid}`, `guildIndex`, `guildDirectory`. Bila update gagal, coin dikembalikan.
+- `join`: validasi `joinCheck` → update member/count/directory → transaksi pemain set guild. Bila transaksi gagal, member di-rollback.
+- `leave`: leader memindahkan `leaderUid` ke anggota terlama; guild kosong dibubarkan (info, indeks, direktori dihapus).
+- `donate`: maksimum 3×/hari, 5.000 coin; bank +5.000 dan `weeklyPoints` +50.
+- `sendChat`: `push` ke `guilds/{gid}/chat`; UI membaca 50 pesan terakhir.
+- `loadDirectory`: `guildDirectory.orderByChild("memberCount").limitToLast(30)`.
+
+**Boss guild.**
+- `ensureBoss` membuat boss mingguan secara lazy per `weekKey` (Senin 00:00 UTC). HP `1.200.000 + (anggota − 1) × 40.000`.
+- `attackBoss` memakai transaksi pada `guilds/{gid}/boss`, menolak minggu lama, boss mati, atau serangan kedua hari itu. Damage dihitung `GuildBossLogic.damageDealt(hpMax, teamHpPctB)`, dibatasi 25% `hpMax`.
+- `claimBossReward` memberi coin guild (`damage/500`) dan poin (`damage/1000`) sekali per minggu.
+- `BattleActivity` memakai `BattleSetup.guildBoss` (tim A dari formasi, satu unit boss dengan HP = `hpMax`). Stat boss dibuat lebih lambat/bertahan agar pemain sempat menumpuk damage dalam 90 detik.
+
+**Mail (`MailRepository`).**
+- Seed `welcome_01` (1000 coin, 30 diamond, 3 `expscroll_s`) dan `event_social_01` (2000 coin, 2 `stone_enhance`) dibuat sekali lewat `mailFlags/mailSeed_v1`.
+- Maksimum 100 pesan, TTL 30 hari; klaim menandai `claimed` lalu transfer dalam transaksi pemain dengan `mailClaims/{mailId}`.
+- `deliverPending()` menyelesaikan transfer yang terputus saat layar Mail dibuka lagi; `cleanup()` menghapus mail kedaluwarsa/berlebih.
+
+Batas fase 1 (disadari): rules hanya bisa membatasi besar damage dan frekuensi serangan boss, bukan memastikan simulasi; join guild tertutup masih bisa dipaksa karena rules hanya melihat `players/{uid}/guild`; kegagalan transfer reward dipulihkan saat layar dibuka lagi, bukan oleh server.
+
 ---
 
 ## 3. SIKLUS HIDUP BATTLE (STATE MACHINE)
@@ -242,14 +276,22 @@ requests/{uid}/{requestId} = { type, status, result, createdAt }
 | Level up | transaction | `players/{uid}/roster/{charId}` | level, exp, cost |
 | Pasang equipment | multi-write | `roster/{charId}/equipment`, `equipment/{id}/equippedBy` | — |
 | Summon | transaction | `players/{uid}/summons/{pool}` + `roster` + `currencies` | pool, count |
-| Klaim mail | transaction | `requests`, `mail`, `currencies` | requestId, mailId |
+| Cari teman | read | `directory/{uid}` | — |
+| Kirim/terima teman | multi-write | `friends/{uid}/requests`, `outgoing`, `list` | uid, name |
+| Hadiah teman | multi-write + transaction | `friends/{uid}/gifts`, `players/{uid}/social/giftClaims` | — |
+| Baca mail | read | `mail/{uid}` (orderByChild createdAt) | — |
+| Klaim mail | write + transaction | `mail/{uid}/{id}/claimed`, `players/{uid}` (`mailClaims`, currency, inventory) | mailId |
 | Cari arena | write + query | `arena/snapshots/{uid}` (write sendiri), `orderByChild("rating")` (baca) | snapshot formasi |
 | Tanding | transaction + push | `players/{uid}/arena/tickets`, `battles/{id}` | — |
 | Submit hasil | write-once | `battles/{id}/result` + `status` | winner, ticks, hash |
 | Klaim pembelaan | transaction | `players/{uid}/arena` (`arenaInbox`) | — |
 | Leaderboard | query | `rankings/{season}/arena` (season `sYYYY_MM`) | orderByChild score |
-| Guild join | transaction | `guilds/{gid}/members`, `players/{uid}/guild` | gid |
+| Buat guild | transaction + multi-write | `players/{uid}/guild`, `guilds/{gid}`, `guildIndex`, `guildDirectory` | name, tag |
+| Gabung/keluar guild | multi-write + transaction | `guilds/{gid}/members`, `info`, `guildDirectory`, `players/{uid}/guild` | gid |
+| Donasi guild | transaction | `players/{uid}/guild/donations`, `guilds/{gid}/info/bank`, `members/{uid}` | — |
 | Chat | push | `guilds/{gid}/chat` | text |
+| Boss guild | transaction | `guilds/{gid}/boss` (`hpLeft`, `damage`, `attacks`) | damage, hash |
+| Klaim hadiah boss | transaction | `guild/members/{uid}/bossClaims`, `players/{uid}/guild/bossClaims` | weekKey |
 | Presence | set + onDisconnect | `presence/{uid}` | online, state |
 
 ### 9.2 Endpoint HTTP (Fase 2, Cloud Functions/Cloud Run)
@@ -355,6 +397,12 @@ Fase 2:
 | Maintenance | "Server sedang dalam perbaikan." | Tampilkan jam |
 | Data player hilang | "Data tidak ditemukan." | Tombol buat ulang (support) |
 | Reward sudah diklaim | "Hadiah sudah diklaim." | Refresh UI |
+| Guild penuh/tertutup | "Guild penuh." / "Guild tidak menerima anggota baru." | Kembali ke daftar |
+| Nama guild dipakai | "Nama guild sudah dipakai." | Ganti nama |
+| Sudah menyerang boss | "Kamu sudah menyerang boss hari ini." | Kembali ke Guild |
+| Boss sudah tumbang | "Boss telah tumbang. Sampai minggu depan!" | Tombol nonaktif |
+| Simpan damage boss gagal | "Gagal menyimpan kerusakan boss. Coba lagi." | Retry (maks 1×), lalu kembali |
+| Teman sudah ada / menunggu | "Sudah berteman." / "Permintaan sudah dikirim." | Tombol nonaktif |
 | Kuota penuh | "Penyimpanan penuh. Jual atau hapus item." | Ke Inventory |
 | Battle kedaluwarsa | "Pertarungan kedaluwarsa." | Kembali ke Arena |
 | Google login gagal | "Gagal masuk dengan Google. Coba lagi." | Retry, fallback guest |

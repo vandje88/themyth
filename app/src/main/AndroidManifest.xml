@@ -89,6 +89,27 @@
             android:exported="false"
             android:screenOrientation="sensorLandscape"
             android:theme="@style/Theme.TheMyth" />
+
+        <activity
+            android:name=".ui.mail.MailActivity"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:exported="false"
+            android:screenOrientation="sensorLandscape"
+            android:theme="@style/Theme.TheMyth" />
+
+        <activity
+            android:name=".ui.friends.FriendsActivity"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:exported="false"
+            android:screenOrientation="sensorLandscape"
+            android:theme="@style/Theme.TheMyth" />
+
+        <activity
+            android:name=".ui.guild.GuildActivity"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:exported="false"
+            android:screenOrientation="sensorLandscape"
+            android:theme="@style/Theme.TheMyth" />
     </application>
 
 </manifest>

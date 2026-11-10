@@ -14,6 +14,7 @@ import zhaf.media.themyth.data.model.EquipmentInstance;
 import zhaf.media.themyth.data.model.FormationState;
 import zhaf.media.themyth.data.model.RosterChar;
 import zhaf.media.themyth.data.progression.Progression;
+import zhaf.media.themyth.data.social.GuildBoss;
 import zhaf.media.themyth.data.staticdata.CharacterCatalog;
 import zhaf.media.themyth.data.staticdata.CharacterStats;
 import zhaf.media.themyth.data.staticdata.CharacterTemplate;
@@ -98,8 +99,51 @@ public final class BattleSetup {
                 BattleInput.DEFAULT_MAX_TICKS);
     }
 
-    private static BattleUnit build(CharacterTemplate template, RosterChar state,
-                                    EquipmentCatalog equipCatalog,
+    public static BattleInput guildBoss(CharacterCatalog catalog, EquipmentCatalog equipCatalog,
+                                        FormationState formation, List<RosterChar> roster,
+                                        Map<String, EquipmentInstance> equipment,
+                                        GuildBoss boss, long seed) {
+        if (catalog == null || formation == null || boss == null) {
+            return null;
+        }
+        Map<String, RosterChar> owned = new HashMap<>();
+        if (roster != null) {
+            for (RosterChar entry : roster) {
+                if (entry != null && entry.charId != null) {
+                    owned.put(entry.charId, entry);
+                }
+            }
+        }
+        List<BattleUnit> teamA = new ArrayList<>();
+        List<BattleUnit> teamB = new ArrayList<>();
+        for (int slot = 0; slot < GameConstants.SLOT_COUNT; slot++) {
+            String charId = slot < formation.slots.size() ? formation.slots.get(slot) : "";
+            if (charId == null || charId.trim().isEmpty()) {
+                continue;
+            }
+            CharacterTemplate template = catalog.find(charId);
+            if (template == null) {
+                continue;
+            }
+            teamA.add(build(template, owned.get(charId), equipCatalog, equipment, 0, slot,
+                    "A" + slot, template.name, 1.0));
+        }
+        if (teamA.isEmpty()) {
+            return null;
+        }
+        BattleUnit bossUnit = new BattleUnit(
+                "BOSS", boss.charId, boss.displayName(), boss.sprite, 1, 0, boss.level,
+                boss.element, boss.role,
+                boss.hpMax, 480, 320, 95, 1200, 15000, 700, 300, 500, 600);
+        SkillFactory.assign(bossUnit, 1, 1, 1, 1);
+        teamB.add(bossUnit);
+        applySynergy(teamA);
+        return new BattleInput(seed, teamA, teamB,
+                Strategy.from(formation.strategy), Strategy.BALANCED,
+                BattleInput.DEFAULT_MAX_TICKS);
+    }
+
+    private static BattleUnit build(CharacterTemplate template, RosterChar state,                                    EquipmentCatalog equipCatalog,
                                     Map<String, EquipmentInstance> equipment,
                                     int team, int slot, String uid, String name, double mult) {
         CharacterStats stats = Progression.statsOf(template, state, equipment, equipCatalog);

@@ -39,8 +39,11 @@ import zhaf.media.themyth.data.model.FormationState;
 import zhaf.media.themyth.data.model.PlayerState;
 import zhaf.media.themyth.data.model.RosterChar;
 import zhaf.media.themyth.data.repository.ArenaRepository;
+import zhaf.media.themyth.data.repository.GuildRepository;
 import zhaf.media.themyth.data.repository.ProgressionRepository;
 import zhaf.media.themyth.data.repository.RosterRepository;
+import zhaf.media.themyth.data.social.GuildBoss;
+import zhaf.media.themyth.data.social.GuildBossLogic;
 import zhaf.media.themyth.data.staticdata.CharacterCatalog;
 import zhaf.media.themyth.data.staticdata.EquipmentCatalog;
 import zhaf.media.themyth.databinding.ActivityBattleBinding;
@@ -50,6 +53,7 @@ import zhaf.media.themyth.ui.login.LoginActivity;
 public class BattleActivity extends AppCompatActivity implements BattleFieldView.Listener {
 
     public static final String EXTRA_BATTLE_ID = "extra_battle_id";
+    public static final String EXTRA_GUILD_ID = "extra_guild_id";
 
     private static final int MAX_LOG_LINES = 160;
     private static final long ARENA_TIMEOUT_MS = 15_000L;
@@ -77,10 +81,30 @@ public class BattleActivity extends AppCompatActivity implements BattleFieldView
     private boolean arenaSettling;
     private boolean arenaLoadStarted;
 
+    private String guildId;
+    private GuildBoss guildBoss;
+    private GuildRepository guildRepository;
+    private boolean guildBossLoading;
+    private boolean guildAttackDone;
+    private boolean guildSettling;
+    private int guildDamage;
+    private int guildCoin;
+    private int guildPoints;
+
     private final Runnable arenaTimeout = new Runnable() {
         @Override
         public void run() {
             if (isFinishing() || isDestroyed()) {
+                return;
+            }
+            if (guildId != null) {
+                if (guildBoss == null) {
+                    guildBossLoading = false;
+                    showGuildError(R.string.battle_guild_missing);
+                } else if (!guildAttackDone) {
+                    guildSettling = false;
+                    showGuildError(R.string.battle_guild_save_failed);
+                }
                 return;
             }
             if (arenaBattle == null) {
@@ -117,9 +141,11 @@ public class BattleActivity extends AppCompatActivity implements BattleFieldView
         }
         uid = user.getUid();
         arenaBattleId = getIntent().getStringExtra(EXTRA_BATTLE_ID);
+        guildId = getIntent().getStringExtra(EXTRA_GUILD_ID);
         catalog = CharacterCatalog.get(this);
         equipCatalog = EquipmentCatalog.get(this);
         progressionRepository = new ProgressionRepository(this);
+        guildRepository = new GuildRepository();
 
         binding.battleField.setListener(this);
         binding.battleField.setSpeed(2f);
@@ -160,6 +186,9 @@ public class BattleActivity extends AppCompatActivity implements BattleFieldView
         }
         if (!started && !simulating) {
             attachObservers();
+            if (guildId != null && guildBoss == null) {
+                loadGuildBoss();
+            }
         }
     }
 
@@ -258,6 +287,41 @@ public class BattleActivity extends AppCompatActivity implements BattleFieldView
         if (started || simulating || !rosterLoaded || !formationLoaded) {
             return;
         }
+        if (guildId != null) {
+            if (guildBoss == null) {
+                loadGuildBoss();
+                return;
+            }
+            if (guildBoss.defeated()) {
+                showGuildError(R.string.guild_boss_defeated);
+                return;
+            }
+            BattleInput input = BattleSetup.guildBoss(catalog, equipCatalog, formation, roster,
+                    equipmentById, guildBoss, System.nanoTime());
+            if (input == null) {
+                showEmpty();
+                return;
+            }
+            simulating = true;
+            showLoading(R.string.battle_state_preparing);
+            executor.execute(() -> {
+                BattleResult result;
+                try {
+                    result = BattleEngine.simulate(input);
+                } catch (RuntimeException error) {
+                    mainHandler.post(() -> {
+                        if (isDestroyed()) {
+                            return;
+                        }
+                        simulating = false;
+                        showGuildError(R.string.battle_error);
+                    });
+                    return;
+                }
+                mainHandler.post(() -> onGuildSimulationDone(result));
+            });
+            return;
+        }
         BattleInput input = BattleSetup.training(catalog, equipCatalog, formation, roster,
                 equipmentById, System.nanoTime());
         if (input == null) {
@@ -285,6 +349,127 @@ public class BattleActivity extends AppCompatActivity implements BattleFieldView
             }
             mainHandler.post(() -> onSimulationDone(result));
         });
+    }
+
+    private void loadGuildBoss() {
+        if (guildId == null || guildBossLoading || guildBoss != null) {
+            return;
+        }
+        guildBossLoading = true;
+        showLoading(R.string.battle_guild_loading);
+        guildRepository.loadBoss(guildId, new GuildRepository.BossCallback() {
+            @Override
+            public void onData(GuildBoss boss) {
+                if (isDestroyed()) {
+                    return;
+                }
+                guildBossLoading = false;
+                guildBoss = boss;
+                if (boss.defeated()) {
+                    showGuildError(R.string.guild_boss_defeated);
+                    return;
+                }
+                binding.overlayLoading.setVisibility(View.GONE);
+                maybeStart();
+            }
+
+            @Override
+            public void onError(com.google.firebase.database.DatabaseError error) {
+                if (isDestroyed()) {
+                    return;
+                }
+                guildBossLoading = false;
+                showGuildError(R.string.battle_guild_missing);
+            }
+        });
+    }
+
+    private void onGuildSimulationDone(BattleResult result) {
+        if (isDestroyed()) {
+            return;
+        }
+        simulating = false;
+        currentResult = result;
+        guildDamage = GuildBossLogic.damageDealt(guildBoss.hpMax, result.teamHpPctB);
+        settleGuild(result);
+    }
+
+    private void settleGuild(BattleResult result) {
+        guildSettling = true;
+        showLoading(R.string.battle_guild_saving);
+        armArenaTimeout();
+        guildRepository.attackBoss(uid, guildId, guildDamage, result.hash,
+                new GuildRepository.AttackCallback() {
+                    @Override
+                    public void onSuccess(int damage, int hpLeft) {
+                        if (isDestroyed()) {
+                            return;
+                        }
+                        disarmArenaTimeout();
+                        guildSettling = false;
+                        guildAttackDone = true;
+                        guildDamage = damage;
+                        started = true;
+                        binding.overlayError.setVisibility(View.GONE);
+                        binding.overlayLoading.setVisibility(View.GONE);
+                        binding.tvBattleState.setText(R.string.battle_state_running);
+                        binding.battleField.setBattle(result);
+                        claimGuildReward();
+                    }
+
+                    @Override
+                    public void onError(@StringRes int messageRes) {
+                        if (isDestroyed()) {
+                            return;
+                        }
+                        disarmArenaTimeout();
+                        guildSettling = false;
+                        showGuildError(messageRes);
+                    }
+                });
+    }
+
+    private void claimGuildReward() {
+        if (guildBoss == null || guildDamage <= 0) {
+            return;
+        }
+        guildRepository.claimBossReward(uid, guildId, guildBoss.weekKey, guildDamage,
+                new GuildRepository.RewardCallback() {
+                    @Override
+                    public void onSuccess(int coin, int points) {
+                        if (isDestroyed()) {
+                            return;
+                        }
+                        guildCoin += coin;
+                        guildPoints += points;
+                        if (binding.resultOverlay.getVisibility() == View.VISIBLE) {
+                            updateGuildResultLine();
+                        }
+                    }
+
+                    @Override
+                    public void onError(@StringRes int messageRes) {
+                    }
+                });
+    }
+
+    private void updateGuildResultLine() {
+        if (guildBoss == null) {
+            return;
+        }
+        binding.tvResultArena.setVisibility(View.VISIBLE);
+        binding.tvResultArena.setText(getString(R.string.battle_result_guild,
+                numberFormat.format(guildDamage), numberFormat.format(guildCoin), guildPoints));
+    }
+
+    private void showGuildError(@StringRes int messageRes) {
+        simulating = false;
+        disarmArenaTimeout();
+        binding.overlayLoading.setVisibility(View.GONE);
+        binding.overlayEmpty.setVisibility(View.GONE);
+        binding.tvBattleError.setText(messageRes);
+        binding.overlayError.setVisibility(View.VISIBLE);
+        binding.tvBattleState.setText(R.string.battle_error);
     }
 
     private void onSimulationDone(BattleResult result) {
@@ -459,7 +644,12 @@ public class BattleActivity extends AppCompatActivity implements BattleFieldView
 
         String seconds = String.format(Locale.getDefault(), "%.1f",
                 currentResult.durationMs() / 1000.0);
-        if (arenaBattle != null) {
+        if (guildBoss != null) {
+            binding.tvResultSubtitle.setText(getString(
+                    R.string.battle_result_guild_subtitle,
+                    guildBoss.displayName(), seconds));
+            updateGuildResultLine();
+        } else if (arenaBattle != null) {
             binding.tvResultSubtitle.setText(getString(R.string.battle_result_arena_subtitle,
                     arenaBattle.b.username, seconds));
             if (arenaSettlement != null) {
@@ -620,6 +810,24 @@ public class BattleActivity extends AppCompatActivity implements BattleFieldView
     }
 
     private void retryLoad() {
+        if (guildId != null) {
+            binding.overlayError.setVisibility(View.GONE);
+            if (guildAttackDone && currentResult != null) {
+                binding.tvBattleState.setText(R.string.battle_state_running);
+                started = true;
+                binding.battleField.setBattle(currentResult);
+                claimGuildReward();
+                return;
+            }
+            if (currentResult != null && guildBoss != null) {
+                settleGuild(currentResult);
+                return;
+            }
+            guildBoss = null;
+            guildBossLoading = false;
+            simulateGuildAgain();
+            return;
+        }
         if (arenaBattleId != null) {
             binding.overlayError.setVisibility(View.GONE);
             if (arenaBattle == null) {
@@ -642,6 +850,19 @@ public class BattleActivity extends AppCompatActivity implements BattleFieldView
         clearLog();
         showLoading(R.string.battle_state_loading);
         attachObservers();
+    }
+
+    private void simulateGuildAgain() {
+        started = false;
+        simulating = false;
+        rosterLoaded = false;
+        formationLoaded = false;
+        roster.clear();
+        formation = FormationState.empty();
+        clearLog();
+        showLoading(R.string.battle_state_loading);
+        attachObservers();
+        loadGuildBoss();
     }
 
     private void attemptExit() {

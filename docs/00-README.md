@@ -2,9 +2,9 @@
 
 **2D Anime Mitologi RPG · 3 VS 3 Idle Auto Battle · Android · Firebase**
 
-Versi dokumen: 1.2 (2026-11-10)
-Status kode: M0–M7 selesai (fondasi, auth, roster/formasi, battle engine + UI, progression, gacha + shop, arena async). `assembleDebug`, unit test, dan `lintDebug` **SUKSES**.
-Status dokumen: lengkap untuk fase desain; implementasi mengikuti roadmap di `05-TECHNICAL-ANDROID.md` (berikutnya M8 Sosial).
+Versi dokumen: 1.3 (2026-11-10)
+Status kode: M0–M8 selesai (fondasi, auth, roster/formasi, battle engine + UI, progression, gacha + shop, arena async, sosial). `assembleDebug`, unit test, dan `lintDebug` **SUKSES**.
+Status dokumen: lengkap untuk fase desain; implementasi mengikuti roadmap di `05-TECHNICAL-ANDROID.md` (berikutnya M9 Event + Polish).
 
 ---
 
@@ -111,7 +111,7 @@ Roadmap implementasi (lihat `05-TECHNICAL-ANDROID.md` §9):
 | M5 Progression (level, breakthrough, equipment, skill) | Selesai |
 | M6 Gacha + Shop (pity, riwayat, batas beli harian) | Selesai — versi 4.5 |
 | M7 Arena Async (snapshot, matchmaking, rating, ranking) | Selesai — fase 1 tanpa Functions |
-| M8 Sosial (guild, chat, boss, friend, mail) | Berikutnya |
+| M8 Sosial (mail, teman, guild, chat, donasi, boss guild) | Selesai — fase 1 tanpa Functions |
 | M9 Event + Polish | Belum |
 | M10 QA + Rilis | Belum |
 
@@ -128,3 +128,10 @@ Catatan M7 (Arena Async, fase 1 tanpa Cloud Functions):
 - Pembela tidak perlu online: hasil masuk ke `players/{bUid}/arenaInbox/{bid}`, lalu diverifikasi ulang client pembela terhadap node `battles/{bid}` sebelum ratingnya diubah (ditandai `arena/defended/{bid}` agar idempoten).
 - Batas fase 1 (disadari): settlement tetap dijalankan client penyerang dan hanya dijaga `ArenaResultGuard` (winner konsisten dengan HP, jumlah tick wajar, hash ada). Sebelum reward nyata, pindahkan verifikasi ke Cloud Functions.
 - Emulator pengembangan saat ini gagal handshake TLS ke Firebase (SSL scanning Avast memotong sertifikat), sehingga alur jaringan hanya terverifikasi lewat unit test dan state UI; uji dua perangkat diperlukan di jaringan bersih.
+
+Catatan M8 (Sosial, fase 1 tanpa Cloud Functions):
+- Tiga layar baru: **Mail** (seed sambutan + event, klaim lampiran idempoten, hapus kedaluwarsa), **Teman** (cari lewat `directory/{uid}`, request dua arah, hadiah 50 coin 1×/hari, maks 50 teman), dan **Guild** (buat 200.000 coin, gabung/keluar, anggota, chat 50 pesan, donasi 3×/hari, boss mingguan).
+- Tombol Mail/Teman/Guild ditambahkan di Home; `publishDirectory()` dipanggil otomatis agar pemain bisa ditemukan tanpa menebak UID.
+- Boss guild bertarung lewat `BattleActivity` (`EXTRA_GUILD_ID`): damage dihitung dari sisa HP boss pada simulasi, dibatasi 25% `hpMax`, satu serangan per anggota per hari, lalu reward coin guild/poin diklaim sekali per minggu.
+- Klaim (mail/teman/boss) memakai penanda di dalam transaksi `players/{uid}`; donasi dan serangan boss memakai transaksi terpisah dengan rollback.
+- Batas fase 1: rules hanya membatasi besar damage/frekuensi, bukan memvalidasi simulasi boss; join guild tertutup belum bisa dicegah penuh; presence dan notifikasi sosial menyusul di M9.

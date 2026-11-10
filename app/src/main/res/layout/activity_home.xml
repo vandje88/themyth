@@ -377,6 +377,39 @@
                         android:layout_marginTop="12dp"
                         android:text="@string/home_arena" />
 
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:orientation="horizontal">
+
+                        <androidx.appcompat.widget.AppCompatButton
+                            android:id="@+id/btnMail"
+                            style="@style/Widget.TheMyth.Button.Secondary"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/home_mail" />
+
+                        <androidx.appcompat.widget.AppCompatButton
+                            android:id="@+id/btnFriends"
+                            style="@style/Widget.TheMyth.Button.Secondary"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_weight="1"
+                            android:text="@string/home_friends" />
+
+                        <androidx.appcompat.widget.AppCompatButton
+                            android:id="@+id/btnGuild"
+                            style="@style/Widget.TheMyth.Button.Secondary"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_weight="1"
+                            android:text="@string/home_guild" />
+                    </LinearLayout>
+
                     <androidx.appcompat.widget.AppCompatButton
                         android:id="@+id/btnInventory"
                         style="@style/Widget.TheMyth.Button.Secondary"

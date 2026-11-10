@@ -119,9 +119,76 @@
           }
         },
 
-        "guild": { ".read": true },
+        "guild": {
+          ".read": "auth != null && auth.uid === $uid",
+          "id": { ".validate": "newData.val() === null || (newData.isString() && newData.val().length <= 40)" },
+          "role": { ".validate": "newData.val() === 'leader' || newData.val() === 'officer' || newData.val() === 'member' || newData.val() === null" },
+          "coin": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 999999999" },
+          "joinedAt": { ".validate": "newData.isNumber()" },
+          "donations": {
+            "day": { ".validate": "newData.isString() && newData.val().length <= 10" },
+            "count": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 3" },
+            "$other": { ".validate": true }
+          },
+          "bossClaims": {
+            "$weekKey": { ".validate": "newData.isNumber()" }
+          },
+          "$other": { ".validate": true }
+        },
+        "social": {
+          "giftClaims": {
+            "$key": { ".validate": "newData.isNumber()" }
+          },
+          "$other": { ".validate": true }
+        },
+        "mailClaims": {
+          "$mailId": { ".validate": "newData.isNumber()" }
+        },
+        "mailFlags": {
+          "$flag": { ".validate": "newData.val() === true" }
+        },
         "mailIndex": { ".read": true },
         "requests": { "$reqId": { ".validate": "newData.child('status').val() === 'DONE'" } },
+        "$other": { ".validate": true }
+      }
+    },
+
+    "directory": {
+      ".read": "auth != null",
+      "$uid": {
+        ".write": "auth != null && auth.uid === $uid",
+        ".validate": "newData.hasChildren(['uid','name','level','updatedAt']) && newData.child('uid').val() === $uid",
+        "uid": { ".validate": "newData.val() === $uid" },
+        "name": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 16" },
+        "avatar": { ".validate": "newData.isString() && newData.val().length <= 2" },
+        "level": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 100" },
+        "guildId": { ".validate": "newData.val() === null || newData.isString()" },
+        "updatedAt": { ".validate": "newData.isNumber()" },
+        "$other": { ".validate": true }
+      }
+    },
+
+    "guildIndex": {
+      ".read": "auth != null",
+      "$nameLower": {
+        ".write": "auth != null && ((!data.exists() && newData.isString() && root.child('players').child(auth.uid).child('guild').child('id').val() === newData.val()) || (data.exists() && newData.val() === null && root.child('guilds').child(data.val()).child('info').child('leaderUid').val() === auth.uid))",
+        ".validate": "newData.isString() && newData.val().length <= 40"
+      }
+    },
+
+    "guildDirectory": {
+      ".read": "auth != null",
+      ".indexOn": ["memberCount"],
+      "$gid": {
+        ".write": "auth != null && ((!data.exists() && root.child('guilds').child($gid).child('members').child(auth.uid).exists()) || (data.exists() && newData.val() === null && root.child('guilds').child($gid).child('info').child('leaderUid').val() === auth.uid) || (data.exists() && newData.child('name').val() === data.child('name').val() && newData.child('tag').val() === data.child('tag').val() && newData.child('minLevel').val() === data.child('minLevel').val() && newData.child('open').val() === data.child('open').val()))",
+        ".validate": "newData.hasChildren(['gid','name','tag','memberCount','open']) && newData.child('gid').val() === $gid",
+        "gid": { ".validate": "newData.val() === $gid" },
+        "name": { ".validate": "newData.isString() && newData.val().length >= 3 && newData.val().length <= 20" },
+        "tag": { ".validate": "newData.isString() && newData.val().length >= 2 && newData.val().length <= 4" },
+        "memberCount": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 30" },
+        "minLevel": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 100" },
+        "open": { ".validate": "newData.isBoolean()" },
+        "updatedAt": { ".validate": "newData.isNumber()" },
         "$other": { ".validate": true }
       }
     },
@@ -129,26 +196,85 @@
     "guilds": {
       ".read": "auth != null",
       "$gid": {
+        ".write": "auth != null && ((!data.exists() && newData.child('info').child('leaderUid').val() === auth.uid) || (data.exists() && newData.val() === null && data.child('info').child('leaderUid').val() === auth.uid))",
+        ".validate": "newData.val() === null || newData.hasChildren(['info','members'])",
         "info": {
-          ".write": "auth != null && (root.child('guilds').child($gid).child('members').child(auth.uid).exists() || !data.exists())",
+          ".write": "auth != null && (!data.exists() || root.child('guilds').child($gid).child('members').child(auth.uid).exists() || data.parent().child('members').child(auth.uid).exists())",
+          ".validate": "newData.hasChildren(['id','name','nameLower','tag','leaderUid','memberCount','createdAt','open']) || newData.val() === null",
+          "id": { ".validate": "newData.val() === $gid" },
+          "name": { ".validate": "newData.isString() && newData.val().length >= 3 && newData.val().length <= 20" },
+          "nameLower": { ".validate": "newData.isString() && newData.val() === newData.parent().child('name').val().toLowerCase()" },
+          "tag": { ".validate": "newData.isString() && newData.val().length >= 2 && newData.val().length <= 4" },
+          "leaderUid": { ".validate": "newData.isString() && newData.val().length >= 6" },
           "memberCount": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 30" },
-          "level": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 30" }
+          "maxMembers": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 30" },
+          "minLevel": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 100" },
+          "open": { ".validate": "newData.isBoolean()" },
+          "notice": { ".validate": "newData.isString() && newData.val().length <= 120" },
+          "noticeEn": { ".validate": "newData.isString() && newData.val().length <= 120" },
+          "level": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 30" },
+          "exp": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+          "bank": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 999999999" },
+          "createdAt": { ".validate": "newData.isNumber()" },
+          "updatedAt": { ".validate": "newData.isNumber()" },
+          "$other": { ".validate": true }
         },
         "members": {
-          ".write": "auth != null && root.child('players').child(auth.uid).child('guild').child('id').val() === $gid",
           "$memberUid": {
-            "role": { ".validate": "newData.val() === 'leader' || newData.val() === 'officer' || newData.val() === 'member'" }
+            ".write": "auth != null && ((!data.exists() && auth.uid === $memberUid && newData.child('role').val() === 'member') || (data.exists() && auth.uid === $memberUid && newData.val() === null) || (data.exists() && auth.uid === $memberUid && newData.child('role').val() === data.child('role').val()) || (data.exists() && auth.uid !== $memberUid && (root.child('guilds').child($gid).child('members').child(auth.uid).child('role').val() === 'leader' || (root.child('guilds').child($gid).child('members').child(auth.uid).child('role').val() === 'officer' && data.child('role').val() === 'member'))) || (!data.exists() && root.child('players').child($memberUid).child('guild').child('id').val() === $gid)",
+            ".validate": "newData.val() === null || (newData.hasChildren(['role','joinedAt']) && newData.parent().numChildren() <= 30)",
+            "role": { ".validate": "newData.val() === 'leader' || newData.val() === 'officer' || newData.val() === 'member'" },
+            "name": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 16" },
+            "joinedAt": { ".validate": "newData.isNumber()" },
+            "weeklyPoints": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+            "totalPoints": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+            "bossClaims": {
+              "$weekKey": { ".validate": "newData.val() === true" }
+            },
+            "$other": { ".validate": true }
           }
         },
         "chat": {
           ".read": "auth != null && root.child('guilds').child($gid).child('members').child(auth.uid).exists()",
           ".write": "auth != null && root.child('guilds').child($gid).child('members').child(auth.uid).exists()",
           "$msgId": {
-            ".validate": "newData.hasChildren(['uid','text','at']) && newData.child('uid').val() === auth.uid && newData.child('text').val().length <= 200"
+            ".validate": "newData.val() === null || (newData.hasChildren(['uid','name','text','at']) && newData.child('uid').val() === auth.uid && newData.child('text').val().length >= 1 && newData.child('text').val().length <= 200 && newData.child('at').isNumber() && newData.numChildren() <= 5)"
           }
         },
         "boss": {
-          "hpLeft": { ".validate": "newData.isNumber() && newData.val() >= 0" }
+          ".write": "auth != null && root.child('guilds').child($gid).child('members').child(auth.uid).exists()",
+          ".validate": "newData.val() === null || newData.hasChildren(['bossId','weekKey','hpMax','hpLeft','endsAt'])",
+          "bossId": { ".validate": "newData.isString() && newData.val().length <= 40" },
+          "weekKey": { ".validate": "newData.isString() && newData.val().length <= 20" },
+          "name": { ".validate": "newData.isString() && newData.val().length <= 40" },
+          "nameEn": { ".validate": "newData.isString() && newData.val().length <= 40" },
+          "charId": { ".validate": "newData.isString() && newData.val().length <= 40" },
+          "sprite": { ".validate": "newData.isString() && newData.val().length <= 40" },
+          "element": { ".validate": "newData.isString() && newData.val().length <= 20" },
+          "role": { ".validate": "newData.isString() && newData.val().length <= 20" },
+          "level": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 100" },
+          "hpMax": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 50000000" },
+          "hpLeft": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= newData.parent().child('hpMax').val() && (!data.exists() || (data.val() - newData.val()) <= newData.parent().child('hpMax').val() * 0.25 + 1)" },
+          "endsAt": { ".validate": "newData.isNumber()" },
+          "damage": {
+            "$uid": {
+              ".write": "auth != null && auth.uid === $uid",
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= newData.parent().parent().child('hpMax').val()"
+            }
+          },
+          "attacks": {
+            "$uid": {
+              ".write": "auth != null && auth.uid === $uid",
+              "$day": { ".validate": "newData.val() === true" }
+            }
+          },
+          "lastBattle": {
+            "$uid": {
+              ".write": "auth != null && auth.uid === $uid",
+              ".validate": "newData.isString()"
+            }
+          },
+          "$other": { ".validate": true }
         }
       }
     },
@@ -247,7 +373,53 @@
     "friends": {
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
-        ".write": "auth != null && auth.uid === $uid"
+        ".write": "auth != null && auth.uid === $uid",
+        "list": {
+          "$friendUid": {
+            ".write": "auth != null && (auth.uid === $uid || auth.uid === $friendUid)",
+            ".validate": "newData.val() === null || (newData.hasChildren(['uid','name','since']) && newData.child('uid').val() === $friendUid && newData.child('name').val().length >= 1 && newData.child('name').val().length <= 16)",
+            "uid": { ".validate": "newData.val() === $friendUid" },
+            "name": { ".validate": "newData.isString() && newData.val().length <= 16" },
+            "since": { ".validate": "newData.isNumber()" },
+            "lastGiftDay": { ".validate": "newData.isString() && newData.val().length <= 10" },
+            "$other": { ".validate": true }
+          }
+        },
+        "requests": {
+          "$fromUid": {
+            ".write": "auth != null && (auth.uid === $uid || (auth.uid === $fromUid && newData.child('uid').val() === $fromUid))",
+            ".validate": "newData.val() === null || (newData.hasChildren(['uid','name','at']) && newData.child('uid').val() === $fromUid)",
+            "uid": { ".validate": "newData.val() === $fromUid" },
+            "name": { ".validate": "newData.isString() && newData.val().length <= 16" },
+            "at": { ".validate": "newData.isNumber()" },
+            "$other": { ".validate": true }
+          }
+        },
+        "outgoing": {
+          "$toUid": {
+            ".write": "auth != null && (auth.uid === $uid || (auth.uid === $toUid && newData.val() === null))",
+            ".validate": "newData.val() === null || newData.hasChildren(['uid','name','at'])",
+            "uid": { ".validate": "newData.val() === $toUid" },
+            "name": { ".validate": "newData.isString() && newData.val().length <= 16" },
+            "at": { ".validate": "newData.isNumber()" },
+            "$other": { ".validate": true }
+          }
+        },
+        "gifts": {
+          "$fromUid": {
+            ".write": "auth != null && (auth.uid === $uid || (auth.uid === $fromUid && root.child('friends').child($uid).child('list').child($fromUid).exists()))",
+            ".validate": "newData.val() === null || (newData.hasChildren(['uid','name','day','at']) && newData.child('uid').val() === $fromUid)",
+            "uid": { ".validate": "newData.val() === $fromUid" },
+            "name": { ".validate": "newData.isString() && newData.val().length <= 16" },
+            "day": { ".validate": "newData.isString() && newData.val().length <= 10" },
+            "at": { ".validate": "newData.isNumber()" },
+            "$other": { ".validate": true }
+          }
+        },
+        "giftClaims": {
+          "$key": { ".validate": "newData.isNumber()" }
+        },
+        "$other": { ".validate": true }
       }
     },
 
@@ -256,8 +428,26 @@
         ".read": "auth != null && auth.uid === $uid",
         ".write": "auth != null && auth.uid === $uid",
         "$mailId": {
-          "claimed": { ".validate": "newData.isBoolean()" },
+          ".validate": "newData.val() === null || (newData.hasChildren(['id','type','createdAt','expiresAt','read','claimed']) && newData.child('id').val() === $mailId && newData.numChildren() <= 12)",
+          "id": { ".validate": "newData.val() === $mailId" },
+          "type": { ".validate": "newData.val() === 'SYSTEM' || newData.val() === 'REWARD' || newData.val() === 'EVENT' || newData.val() === 'RANKING' || newData.val() === 'COMPENSATION' || newData.val() === 'WELCOME'" },
+          "title": { ".validate": "newData.isString() && newData.val().length <= 80" },
+          "titleEn": { ".validate": "newData.isString() && newData.val().length <= 80" },
+          "body": { ".validate": "newData.isString() && newData.val().length <= 500" },
+          "bodyEn": { ".validate": "newData.isString() && newData.val().length <= 500" },
+          "createdAt": { ".validate": "newData.isNumber()" },
+          "expiresAt": { ".validate": "newData.isNumber()" },
           "read": { ".validate": "newData.isBoolean()" },
+          "claimed": { ".validate": "newData.isBoolean()" },
+          "attachments": {
+            ".validate": "newData.numChildren() <= 3",
+            "coin": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 999999999" },
+            "diamond": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 9999999" },
+            "items": {
+              "$itemId": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 9999" }
+            },
+            "$other": { ".validate": true }
+          },
           "$other": { ".validate": true }
         }
       }

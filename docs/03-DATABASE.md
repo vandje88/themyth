@@ -481,68 +481,105 @@ Rating, koin, poin, dan tiket pemain sendiri ditulis lebih dulu lewat satu trans
 
 ## 7. GUILD
 
+Guild dibuat dari client dalam satu `root.update()` multi-path ditambah satu transaksi pemain (biaya 200.000 coin). Node yang ditulis:
+
 ```json
 {
-  "guilds/g_ab12": {
+  "guilds/g_ab12x9f3c": {
     "info": {
-      "id": "g_ab12", "name": "Arunika", "nameLower": "arunika",
-      "tag": "ARN", "level": 5, "exp": 12400,
-      "leaderUid": "Xk29sd...", "memberCount": 12, "maxMembers": 30,
-      "minLevel": 10, "open": true, "notice": "Aktif malam",
-      "createdAt": 1731100000000, "region": "ID"
+      "id": "g_ab12x9f3c", "name": "Arunika", "nameLower": "arunika",
+      "tag": "ARN", "leaderUid": "Xk29sd...", "memberCount": 1,
+      "maxMembers": 30, "minLevel": 1, "open": true,
+      "level": 1, "exp": 0, "bank": 0,
+      "createdAt": 1731100000000, "updatedAt": 1731100000000
     },
-    "members": {
-      "Xk29sd...": { "role": "leader", "joinedAt": 1731100000000, "weeklyPoints": 340, "lastActive": 1731299000000 },
-      "Yp82ld...": { "role": "officer", "joinedAt": 1731110000000, "weeklyPoints": 220, "lastActive": 1731298000000 }
+    "members/Xk29sd...": {
+      "role": "leader", "name": "PemanggilNama", "joinedAt": 1731100000000,
+      "weeklyPoints": 0, "totalPoints": 0
     },
-    "chat": {
-      "m_1731299000000_Xk29sd": { "uid": "Xk29sd...", "name": "PemanggilNama", "text": "Boss jam 8 ya", "at": 1731299000000 }
+    "chat/m_1731299000000": {
+      "uid": "Xk29sd...", "name": "PemanggilNama",
+      "text": "Boss jam 8 ya", "at": 1731299000000
     },
     "boss": {
-      "bossId": "boss_kabut_1", "weekStart": 1731283200000,
-      "hpMax": 5000000, "hpLeft": 3120000,
-      "damage": { "Xk29sd...": 420000, "Yp82ld...": 310000 }
+      "bossId": "boss_bayangan_gatotkaca", "weekKey": "2026_W45",
+      "name": "Bayangan Gatotkaca", "nameEn": "...",
+      "charId": "kala_rudra", "sprite": "kala_rudra",
+      "element": "earth", "role": "tank", "level": 30,
+      "hpMax": 1240000, "hpLeft": 1080000, "endsAt": 1762473600000,
+      "damage": { "Xk29sd...": 160000 },
+      "attacks": { "Xk29sd...": { "2026-11-10": true } },
+      "lastBattle": { "Xk29sd...": "<battle hash>" }
     },
-    "missions": { "donate_10": { "progress": 6, "target": 10 } },
-    "war": { "active": false, "opponentGuildId": null, "score": 0 }
+    "donations": { "day": "2026-11-10", "count": 1 }
   },
-  "guildIndex/arunika": "g_ab12"
+  "guildIndex/arunika": "g_ab12x9f3c",
+  "guildDirectory/g_ab12x9f3c": {
+    "gid": "g_ab12x9f3c", "name": "Arunika", "tag": "ARN",
+    "memberCount": 1, "minLevel": 1, "open": true, "updatedAt": 1731100000000
+  },
+  "players/Xk29sd.../guild": {
+    "id": "g_ab12x9f3c", "role": "leader", "coin": 0,
+    "joinedAt": 1731100000000,
+    "donations": { "day": "2026-11-10", "count": 1 },
+    "bossClaims": { "2026_W45": true }
+  }
 }
 ```
-Chat dibatasi 100 pesan terakhir; client memangkas dengan `limitToLast(100)`.
-Boss HP dikurangi lewat **transaksi**.
+
+Aturan implementasi:
+- ID guild `g_{base≤10}_{hex waktu}`; `guildIndex/{nameLower}` menjaga nama unik. Nama 3–20 karakter, tag 2–4 karakter.
+- Maksimum 30 anggota dan maksimum 50 teman per pemain. Role `leader`/`officer`/`member`.
+- Keluar dari guild: leader memindahkan kepemimpinan ke anggota terlama; jika sendirian, guild dan entri indeks/direktori dihapus. `players/{uid}/guild` dibersihkan.
+- Chat hanya bisa dibaca/ditulis anggota; teks 1–200 karakter. UI memuat **50 pesan terakhir** (`limitToLast`).
+- `guildDirectory` adalah ringkasan untuk layar "Temukan Guild" (`orderByChild("memberCount")`, 30 teratas). Update hanya boleh mengubah `memberCount`/`updatedAt`; nama, tag, minLevel, dan open tidak boleh diubah lewat jalur update.
+- Donasi: 5.000 coin per donasi, maksimum 3×/hari. Coin masuk `info/bank`, pelaku mendapat +50 `weeklyPoints`. Penanda `players/{uid}/guild/donations/{day,count}` mencegah donasi ganda.
+- Boss mingguan dibuat malas oleh anggota pertama yang membuka layar guild: `hpMax = 1.200.000 + (anggota − 1) × 40.000`, reset tiap `weekKey` (Senin 00:00 UTC). Setiap anggota hanya boleh menyerang 1×/hari (`attacks/{uid}/{day}`).
+- Damage boss dihitung client dari sisa HP boss pada simulasi (`teamHpPctB`), lalu dibatasi rules maksimum 25% `hpMax` per tulisan. `damage/{uid}` dijumlahkan dan `lastBattle/{uid}` menyimpan hash hasil.
+- Klaim hadiah boss idempoten lewat `members/{uid}/bossClaims/{weekKey}` (poin) dan `players/{uid}/guild/bossClaims/{weekKey}` (coin guild); klaim kedua tidak menambah reward.
 
 ---
 
-## 8. FRIEND, MAIL, PRESENCE
+## 8. FRIEND, DIRECTORY, MAIL
 
 ```json
 {
+  "directory/Xk29sd...": {
+    "uid": "Xk29sd...", "name": "PemanggilNama", "avatar": "PN",
+    "level": 24, "guildId": "g_ab12x9f3c", "updatedAt": 1731300000000
+  },
   "friends/Xk29sd...": {
-    "list": {
-      "Yp82ld...": { "since": 1731200000000, "lastGiftAt": 1731280000000, "name": "Bayu" }
+    "list/Yp82ld...": {
+      "uid": "Yp82ld...", "name": "Bayu", "since": 1731200000000,
+      "lastGiftDay": "2026-11-10"
     },
-    "requests": {
-      "Zp11aa...": { "fromUid": "Zp11aa...", "name": "Citra", "at": 1731290000000 }
+    "requests/Zp11aa...": { "uid": "Zp11aa...", "name": "Citra", "at": 1731290000000 },
+    "outgoing/Zp11aa...": { "uid": "Zp11aa...", "name": "Citra", "at": 1731290000000 },
+    "gifts/Yp82ld...": {
+      "uid": "Yp82ld...", "name": "Bayu", "day": "2026-11-10", "at": 1731295000000
     }
   },
+  "players/Xk29sd.../social/giftClaims": { "Yp82ld_2026-11-10": 1731295100000 },
   "mail/Xk29sd.../m_1731290000000": {
-    "id": "m_1731290000000", "type": "REWARD", "title": "Hadiah Arena",
-    "body": "Terima kasih telah bertarung!", "attachments": [
-      { "type": "currency", "id": "diamond", "qty": 100 },
-      { "type": "item", "id": "ticket_summon", "qty": 1 }
-    ],
+    "id": "m_1731290000000", "type": "REWARD",
+    "title": "Hadiah Arena", "titleEn": "Arena Reward",
+    "body": "Terima kasih telah bertarung!", "bodyEn": "...",
+    "attachments": { "coin": 1000, "diamond": 100, "items": { "expscroll_s": 3 } },
     "createdAt": 1731290000000, "expiresAt": 1733882000000,
     "read": false, "claimed": false
   },
-  "presence/Xk29sd...": { "online": true, "lastSeen": 1731300000000, "state": "lobby" }
+  "players/Xk29sd.../mailClaims": { "m_1731290000000": 1731295200000 },
+  "players/Xk29sd.../mailFlags": { "mailSeed_v1": true }
 }
 ```
 
-Presence memakai:
-```java
-presenceRef.onDisconnect().setValue(offlineMap);
-```
+- Pencarian teman memakai `directory`, bukan menebak UID. Pemain menulis entrinya sendiri (`name` ≤ 16 karakter) saat Home, Friends, atau Guild dibuka.
+- Permintaan teman dua fase: pengirim menulis `friends/{target}/requests/{sender}` + `friends/{sender}/outgoing/{target}` dalam satu update; penerima menulis `list` di kedua sisi lalu menghapus request/outgoing. `FriendLogic` membatasi maksimum 50 teman dan mengembalikan kode `SELF`, `MISSING`, `ALREADY_FRIEND`, `PENDING`, `FULL`, atau `INCOMING_PENDING`.
+- Hadiah teman: 1×/hari per penerima (50 coin), ditandai `list/{friendUid}/lastGiftDay`. Penerima mengklaimnya lewat transaksi pemain dengan penanda `players/{uid}/social/giftClaims/{from_day}` (maksimum 1×/hari per pengirim), lalu menghapus `gifts/{fromUid}`.
+- Mail maksimum 100 pesan, kedaluwarsa 30 hari, attachments hanya `{coin, diamond, items}` (maksimum 3 kunci). Seed `welcome_01` dan `event_social_01` dibuat sekali lewat transaksi pada `mailFlags/mailSeed_v1`.
+- Klaim mail menandai `claimed = true`, lalu mentransfer reward dalam transaksi pemain dengan penanda `mailClaims/{mailId}`. Jika transfer gagal di tengah, `deliverPending()` menyelesaikannya saat layar Mail dibuka lagi.
+
+Presence (`presence/{uid}`) belum diimplementasikan di fase ini; direncanakan bersama notifikasi di M9.
 
 ---
 
@@ -596,6 +633,17 @@ presenceRef.onDisconnect().setValue(offlineMap);
 }
 ```
 Pola: client membuat `requestId` UUID; transaksi memeriksa `requests/{uid}/{id}/status`. Jika sudah `DONE`, kembalikan hasil lama. Rules melarang menulis ulang `DONE`.
+
+Penanda idempoten yang dipakai fitur sosial (tanpa `requests`, karena RTDB tidak punya multi-path transaction):
+
+| Aksi | Penanda | Efek jika diulang |
+|---|---|---|
+| Klaim lampiran mail | `players/{uid}/mailClaims/{mailId}` | Reward tidak ditambah dua kali |
+| Klaim hadiah teman | `players/{uid}/social/giftClaims/{from_day}` | Coin tidak ditambah dua kali |
+| Donasi guild | `players/{uid}/guild/donations/{day,count}` | Dibatasi 3×/hari |
+| Serangan boss | `guilds/{gid}/boss/attacks/{uid}/{day}` | Ditolak "sudah menyerang hari ini" |
+| Klaim hadiah boss | `members/{uid}/bossClaims/{weekKey}` + `players/{uid}/guild/bossClaims/{weekKey}` | Coin/poin tidak ditambah dua kali |
+| Seed mailbox | `players/{uid}/mailFlags/mailSeed_v1` | Mail sambutan tidak dibuat ulang |
 
 ---
 
@@ -695,7 +743,25 @@ Pola: client membuat `requestId` UUID; transaksi memeriksa `requests/{uid}/{id}/
           }
         },
 
-        "guild": { ".read": true },
+        "guild": {
+          ".read": "auth != null && auth.uid === $uid",
+          "id": { ".validate": "newData.val() === null || (newData.isString() && newData.val().length <= 40)" },
+          "role": { ".validate": "newData.val() === 'leader' || newData.val() === 'officer' || newData.val() === 'member' || newData.val() === null" },
+          "coin": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 999999999" },
+          "joinedAt": { ".validate": "newData.isNumber()" },
+          "donations": {
+            "day": { ".validate": "newData.isString() && newData.val().length <= 10" },
+            "count": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 3" }
+          },
+          "bossClaims": { "$weekKey": { ".validate": "newData.isNumber()" } },
+          "$other": { ".validate": true }
+        },
+        "social": {
+          "giftClaims": { "$key": { ".validate": "newData.isNumber()" } },
+          "$other": { ".validate": true }
+        },
+        "mailClaims": { "$mailId": { ".validate": "newData.isNumber()" } },
+        "mailFlags": { "$flag": { ".validate": "newData.val() === true" } },
         "mailIndex": { ".read": true },
         "requests": { "$reqId": { ".validate": "newData.child('status').val() === 'DONE'" } },
 
@@ -732,27 +798,105 @@ Pola: client membuat `requestId` UUID; transaksi memeriksa `requests/{uid}/{id}/
     "guilds": {
       ".read": "auth != null",
       "$gid": {
+        ".write": "auth != null && ((!data.exists() && newData.child('info').child('leaderUid').val() === auth.uid) || (data.exists() && newData.val() === null && data.child('info').child('leaderUid').val() === auth.uid))",
+        ".validate": "newData.val() === null || newData.hasChildren(['info','members'])",
         "info": {
-          ".write": "auth != null && (root.child('guilds').child($gid).child('members').child(auth.uid).exists() || !data.exists())",
+          ".write": "auth != null && (!data.exists() || root.child('guilds').child($gid).child('members').child(auth.uid).exists())",
+          ".validate": "newData.hasChildren(['id','name','nameLower','tag','leaderUid','memberCount','createdAt','open']) || newData.val() === null",
+          "id": { ".validate": "newData.val() === $gid" },
+          "name": { ".validate": "newData.isString() && newData.val().length >= 3 && newData.val().length <= 20" },
+          "nameLower": { ".validate": "newData.val() === newData.parent().child('name').val().toLowerCase()" },
+          "tag": { ".validate": "newData.isString() && newData.val().length >= 2 && newData.val().length <= 4" },
+          "leaderUid": { ".validate": "newData.isString() && newData.val().length >= 6" },
           "memberCount": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 30" },
-          "level": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 30" }
+          "maxMembers": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 30" },
+          "minLevel": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 100" },
+          "open": { ".validate": "newData.isBoolean()" },
+          "notice": { ".validate": "newData.isString() && newData.val().length <= 120" },
+          "level": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 30" },
+          "exp": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+          "bank": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 999999999" },
+          "createdAt": { ".validate": "newData.isNumber()" },
+          "updatedAt": { ".validate": "newData.isNumber()" },
+          "$other": { ".validate": true }
         },
         "members": {
-          ".write": "auth != null && root.child('players').child(auth.uid).child('guild').child('id').val() === $gid",
           "$memberUid": {
-            "role": { ".validate": "newData.val() === 'leader' || newData.val() === 'officer' || newData.val() === 'member'" }
+            ".write": "auth != null && ((!data.exists() && auth.uid === $memberUid && newData.child('role').val() === 'member') || (data.exists() && auth.uid === $memberUid && newData.val() === null) || (data.exists() && auth.uid !== $memberUid && (root.child('guilds').child($gid).child('members').child(auth.uid).child('role').val() === 'leader' || (root.child('guilds').child($gid).child('members').child(auth.uid).child('role').val() === 'officer' && data.child('role').val() === 'member'))) || (!data.exists() && root.child('players').child($memberUid).child('guild').child('id').val() === $gid))",
+            ".validate": "newData.val() === null || (newData.hasChildren(['role','joinedAt']) && newData.parent().numChildren() <= 30)",
+            "role": { ".validate": "newData.val() === 'leader' || newData.val() === 'officer' || newData.val() === 'member'" },
+            "name": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 16" },
+            "joinedAt": { ".validate": "newData.isNumber()" },
+            "weeklyPoints": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+            "totalPoints": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+            "bossClaims": { "$weekKey": { ".validate": "newData.val() === true" } },
+            "$other": { ".validate": true }
           }
         },
         "chat": {
           ".read": "auth != null && root.child('guilds').child($gid).child('members').child(auth.uid).exists()",
           ".write": "auth != null && root.child('guilds').child($gid).child('members').child(auth.uid).exists()",
           "$msgId": {
-            ".validate": "newData.hasChildren(['uid','text','at']) && newData.child('uid').val() === auth.uid && newData.child('text').val().length <= 200"
+            ".validate": "newData.val() === null || (newData.hasChildren(['uid','name','text','at']) && newData.child('uid').val() === auth.uid && newData.child('text').val().length >= 1 && newData.child('text').val().length <= 200 && newData.child('at').isNumber() && newData.numChildren() <= 5)"
           }
         },
         "boss": {
-          "hpLeft": { ".validate": "newData.isNumber() && newData.val() >= 0" }
+          ".write": "auth != null && root.child('guilds').child($gid).child('members').child(auth.uid).exists()",
+          ".validate": "newData.val() === null || newData.hasChildren(['bossId','weekKey','hpMax','hpLeft','endsAt'])",
+          "hpMax": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 50000000" },
+          "hpLeft": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= newData.parent().child('hpMax').val() && (!data.exists() || (data.val() - newData.val()) <= newData.parent().child('hpMax').val() * 0.25 + 1)" },
+          "damage": {
+            "$uid": {
+              ".write": "auth != null && auth.uid === $uid",
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= newData.parent().parent().child('hpMax').val()"
+            }
+          },
+          "attacks": {
+            "$uid": {
+              ".write": "auth != null && auth.uid === $uid",
+              "$day": { ".validate": "newData.val() === true" }
+            }
+          },
+          "lastBattle": {
+            "$uid": {
+              ".write": "auth != null && auth.uid === $uid",
+              ".validate": "newData.isString()"
+            }
+          },
+          "$other": { ".validate": true }
         }
+      }
+    },
+
+    "guildIndex": {
+      ".read": "auth != null",
+      "$nameLower": {
+        ".write": "auth != null && ((!data.exists() && newData.isString() && root.child('players').child(auth.uid).child('guild').child('id').val() === newData.val()) || (data.exists() && newData.val() === null && root.child('guilds').child(data.val()).child('info').child('leaderUid').val() === auth.uid))"
+      }
+    },
+
+    "guildDirectory": {
+      ".read": "auth != null",
+      ".indexOn": ["memberCount"],
+      "$gid": {
+        ".write": "auth != null && ((!data.exists() && root.child('guilds').child($gid).child('members').child(auth.uid).exists()) || (data.exists() && newData.val() === null && root.child('guilds').child($gid).child('info').child('leaderUid').val() === auth.uid) || (data.exists() && newData.child('name').val() === data.child('name').val() && newData.child('tag').val() === data.child('tag').val() && newData.child('minLevel').val() === data.child('minLevel').val() && newData.child('open').val() === data.child('open').val()))",
+        ".validate": "newData.hasChildren(['gid','name','tag','memberCount','open']) && newData.child('gid').val() === $gid",
+        "memberCount": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 30" },
+        "updatedAt": { ".validate": "newData.isNumber()" },
+        "$other": { ".validate": true }
+      }
+    },
+
+    "directory": {
+      ".read": "auth != null",
+      "$uid": {
+        ".write": "auth != null && auth.uid === $uid",
+        ".validate": "newData.hasChildren(['uid','name','level','updatedAt']) && newData.child('uid').val() === $uid",
+        "name": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 16" },
+        "level": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 100" },
+        "guildId": { ".validate": "newData.val() === null || newData.isString()" },
+        "updatedAt": { ".validate": "newData.isNumber()" },
+        "$other": { ".validate": true }
       }
     },
 
@@ -850,7 +994,38 @@ Pola: client membuat `requestId` UUID; transaksi memeriksa `requests/{uid}/{id}/
     "friends": {
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
-        ".write": "auth != null && auth.uid === $uid"
+        ".write": "auth != null && auth.uid === $uid",
+        "list": {
+          "$friendUid": {
+            ".write": "auth != null && (auth.uid === $uid || auth.uid === $friendUid)",
+            ".validate": "newData.val() === null || (newData.hasChildren(['uid','name','since']) && newData.child('uid').val() === $friendUid && newData.child('name').val().length >= 1 && newData.child('name').val().length <= 16)",
+            "lastGiftDay": { ".validate": "newData.isString() && newData.val().length <= 10" },
+            "$other": { ".validate": true }
+          }
+        },
+        "requests": {
+          "$fromUid": {
+            ".write": "auth != null && (auth.uid === $uid || (auth.uid === $fromUid && newData.child('uid').val() === $fromUid))",
+            ".validate": "newData.val() === null || (newData.hasChildren(['uid','name','at']) && newData.child('uid').val() === $fromUid)",
+            "$other": { ".validate": true }
+          }
+        },
+        "outgoing": {
+          "$toUid": {
+            ".write": "auth != null && (auth.uid === $uid || (auth.uid === $toUid && newData.val() === null))",
+            ".validate": "newData.val() === null || newData.hasChildren(['uid','name','at'])",
+            "$other": { ".validate": true }
+          }
+        },
+        "gifts": {
+          "$fromUid": {
+            ".write": "auth != null && (auth.uid === $uid || (auth.uid === $fromUid && root.child('friends').child($uid).child('list').child($fromUid).exists()))",
+            ".validate": "newData.val() === null || (newData.hasChildren(['uid','name','day','at']) && newData.child('uid').val() === $fromUid)",
+            "$other": { ".validate": true }
+          }
+        },
+        "giftClaims": { "$key": { ".validate": "newData.isNumber()" } },
+        "$other": { ".validate": true }
       }
     },
 
@@ -859,8 +1034,23 @@ Pola: client membuat `requestId` UUID; transaksi memeriksa `requests/{uid}/{id}/
         ".read": "auth != null && auth.uid === $uid",
         ".write": "auth != null && auth.uid === $uid",
         "$mailId": {
-          "claimed": { ".validate": "newData.isBoolean()" },
+          ".validate": "newData.val() === null || (newData.hasChildren(['id','type','createdAt','expiresAt','read','claimed']) && newData.child('id').val() === $mailId && newData.numChildren() <= 12)",
+          "type": { ".validate": "newData.val() === 'SYSTEM' || newData.val() === 'REWARD' || newData.val() === 'EVENT' || newData.val() === 'RANKING' || newData.val() === 'COMPENSATION' || newData.val() === 'WELCOME'" },
+          "title": { ".validate": "newData.isString() && newData.val().length <= 80" },
+          "body": { ".validate": "newData.isString() && newData.val().length <= 500" },
+          "createdAt": { ".validate": "newData.isNumber()" },
+          "expiresAt": { ".validate": "newData.isNumber()" },
           "read": { ".validate": "newData.isBoolean()" },
+          "claimed": { ".validate": "newData.isBoolean()" },
+          "attachments": {
+            ".validate": "newData.numChildren() <= 3",
+            "coin": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 999999999" },
+            "diamond": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 9999999" },
+            "items": {
+              "$itemId": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 9999" }
+            },
+            "$other": { ".validate": true }
+          },
           "$other": { ".validate": true }
         }
       }
@@ -897,7 +1087,9 @@ Pola: client membuat `requestId` UUID; transaksi memeriksa `requests/{uid}/{id}/
 | `rankings/$season/$mode` | `score` |
 | `arena/snapshots` | `rating` (wajib untuk matchmaking fase 1) |
 | `matchmaking/arena/$bracket` | `rating` (cadangan, belum dipakai) |
-| `guildIndex` | (key lookup) |
+| `guildDirectory` | `memberCount` (daftar Temukan Guild) |
+| `guildIndex` | (key lookup nama guild) |
+| `directory` | (key lookup UID pemain) |
 | `presence` | `lastSeen` |
 | `mail/$uid` | `createdAt` |
 
@@ -931,8 +1123,24 @@ Jika langkah 3 gagal, langkah 4 tidak dijalankan; retry dengan `reqId` sama akan
 
 ### 12.3 Guild boss damage
 ```java
-db.getReference("guilds/" + gid + "/boss").runTransaction(...) // kurangi hpLeft, tambah damage[uid]
+// 1) Transaksi guild menolak serangan ganda dan boss minggu lalu
+db.getReference("guilds/" + gid + "/boss").runTransaction(handler);
+// 2) Di dalam transaksi: hpLeft -= damage, damage[uid] += damage,
+//    attacks[uid][day] = true, lastBattle[uid] = hash
 ```
+Damage yang boleh ditulis dibatasi `GuildBossLogic.capDamage` (maks 25% `hpMax`) dan rules memvalidasi penurunan `hpLeft` ≤ 25% `hpMax` per tulisan. `damage`, `attacks`, dan `lastBattle` masing-masing hanya boleh ditulis oleh UID yang bersangkutan.
+
+### 12.4 Donasi guild
+1. Transaksi `players/{uid}`: pastikan coin ≥ 5.000 dan `donations/{day}` belum 3×; potong coin, tambah `count`.
+2. Transaksi `guilds/{gid}/info/bank`: tambah 5.000.
+3. Tambah `members/{uid}/weeklyPoints` +50.
+4. Jika langkah 2/3 gagal, coin dikembalikan lewat transaksi pemain (rollback) dan `count` dikurangi lagi.
+
+### 12.5 Klaim hadiah teman/mail
+Tidak memakai dua transaksi terpisah. Penanda idempoten ditulis **di dalam** transaksi `players/{uid}` bersama penambahan reward, sehingga kegagalan jaringan tidak membuat reward ganda maupun hilang:
+- Teman: `social/giftClaims/{from_day}` + coin.
+- Mail: `mailClaims/{mailId}` + coin/diamond/item.
+- Boss: `guild/bossClaims/{weekKey}` + coin guild, dan `members/{uid}/bossClaims/{weekKey}` untuk poin.
 
 ---
 
@@ -943,7 +1151,7 @@ db.getReference("guilds/" + gid + "/boss").runTransaction(...) // kurangi hpLeft
 | `battleLogs` | 20 terakhir/pemain | Hemat kuota |
 | `battles` | 7 hari (cleanup client/admin) | Audit singkat |
 | `mail` | 30 hari / 100 item | Batas UX |
-| `guild.chat` | 100 pesan | Batas UX |
+| `guild.chat` | 50 pesan dibaca (UI) | Hemat kuota |
 | `summons.history` | 100 pull | Transparansi |
 | `presence` | live | Reset saat offline |
 | `rankings` | per season | Reset musiman |
@@ -962,6 +1170,8 @@ Estimasi ukuran satu pemain aktif: ± 18–30 KB (dengan 20 karakter + 50 equipm
 | Menulis hasil battle palsu | Bisa dicegah menulis 2x | Butuh validasi ulang |
 | Naikkan level karakter | Bisa dibatasi ≤ 80 | Butuh cek material |
 | Spam chat | Bisa batasi panjang | Rate limit butuh Functions |
+| Damage boss guild palsu | Dibatasi ≤ 25% `hpMax` dan 1×/hari per UID | Butuh simulasi ulang di server |
+| Gabung guild tertutup tanpa izin | Tidak bisa dicegah penuh (rules hanya cek `players/{uid}/guild`) | Butuh Functions/validator |
 
 **Fase 1 (sekarang, Spark):** rules + idempotency + audit plausibility (client melaporkan aktivitas; admin memantau anomali).
 **Fase 2 (wajib sebelum ranking berhadiah nyata):** Cloud Functions (Blaze, masih ada kuota gratis) untuk:

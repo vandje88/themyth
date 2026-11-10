@@ -1,0 +1,187 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "meta": {
+      ".read": true
+    },
+    "static": {
+      ".read": true
+    },
+
+    "players": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid",
+
+        "profile": {
+          "uid": { ".validate": "newData.val() === $uid" },
+          "createdAt": { ".validate": "!data.exists() || newData.val() === data.val()" },
+          "username": { ".validate": "newData.isString() && newData.val().length >= 3 && newData.val().length <= 16" },
+          "usernameLower": { ".validate": "newData.val() === newData.parent().child('username').val().toLowerCase()" },
+          "level": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 100" },
+          "rating": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 5000" },
+          "wins": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+          "losses": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+          "guildId": { ".validate": "newData.isString() || newData.val() === null" },
+          "lastOnline": { ".validate": "newData.isNumber()" },
+          "$other": { ".validate": true }
+        },
+
+        "currencies": {
+          "coin": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 999999999" },
+          "diamond": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 9999999" },
+          "energy": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 999" },
+          "ticketSummon": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 999" },
+          "ticketPvp": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 99" },
+          "$other": { ".validate": "newData.isNumber() && newData.val() >= 0" }
+        },
+
+        "roster": {
+          "$charId": {
+            "level": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 80" },
+            "stars": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 6" },
+            "awakening": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 4" },
+            "breakthrough": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 4" },
+            "skillLevels": {
+              "$skill": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 5" }
+            },
+            "$other": { ".validate": true }
+          }
+        },
+
+        "inventory": {
+          "$itemId": {
+            "qty": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 99999" }
+          }
+        },
+
+        "formation": {
+          "slots": { ".validate": "newData.hasChildren(['0','1','2'])" },
+          "cp": { ".validate": "newData.isNumber() && newData.val() >= 0" }
+        },
+
+        "guild": { ".read": true },
+        "mailIndex": { ".read": true },
+        "requests": { "$reqId": { ".validate": "newData.child('status').val() === 'DONE'" } },
+        "$other": { ".validate": true }
+      }
+    },
+
+    "guilds": {
+      ".read": "auth != null",
+      "$gid": {
+        "info": {
+          ".write": "auth != null && (root.child('guilds').child($gid).child('members').child(auth.uid).exists() || !data.exists())",
+          "memberCount": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 30" },
+          "level": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 30" }
+        },
+        "members": {
+          ".write": "auth != null && root.child('players').child(auth.uid).child('guild').child('id').val() === $gid",
+          "$memberUid": {
+            "role": { ".validate": "newData.val() === 'leader' || newData.val() === 'officer' || newData.val() === 'member'" }
+          }
+        },
+        "chat": {
+          ".read": "auth != null && root.child('guilds').child($gid).child('members').child(auth.uid).exists()",
+          ".write": "auth != null && root.child('guilds').child($gid).child('members').child(auth.uid).exists()",
+          "$msgId": {
+            ".validate": "newData.hasChildren(['uid','text','at']) && newData.child('uid').val() === auth.uid && newData.child('text').val().length <= 200"
+          }
+        },
+        "boss": {
+          "hpLeft": { ".validate": "newData.isNumber() && newData.val() >= 0" }
+        }
+      }
+    },
+
+    "battles": {
+      "$bid": {
+        ".read": "auth != null && (data.child('aUid').val() === auth.uid || data.child('bUid').val() === auth.uid)",
+        ".write": "auth != null && !data.exists()",
+        "aUid": { ".validate": "newData.val() === auth.uid" },
+        "seed": { ".validate": "newData.isNumber()" },
+        "status": { ".validate": "newData.val() === 'PENDING'" }
+      }
+    },
+
+    "battleLogs": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+
+    "arena": {
+      "snapshots": {
+        ".read": "auth != null",
+        "$uid": { ".write": "auth != null && auth.uid === $uid" }
+      }
+    },
+
+    "matchmaking": {
+      "$mode": {
+        "$bracket": {
+          ".read": "auth != null",
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid",
+            "status": { ".validate": "newData.val() === 'SEARCHING' || newData.val() === 'MATCHED'" }
+          }
+        }
+      }
+    },
+
+    "rankings": {
+      "$season": {
+        "$mode": {
+          ".read": "auth != null",
+          ".indexOn": ["score"],
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid",
+            "score": { ".validate": "newData.isNumber() && newData.val() >= 0" }
+          }
+        }
+      }
+    },
+
+    "friends": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+
+    "mail": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid",
+        "$mailId": {
+          "claimed": { ".validate": "newData.isBoolean()" },
+          "read": { ".validate": "newData.isBoolean()" },
+          "$other": { ".validate": true }
+        }
+      }
+    },
+
+    "presence": {
+      ".read": "auth != null",
+      "$uid": { ".write": "auth != null && auth.uid === $uid" }
+    },
+
+    "requests": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid",
+        "$reqId": {
+          "status": { ".validate": "newData.val() === 'PENDING' || newData.val() === 'DONE'" }
+        }
+      }
+    },
+
+    "admin": {
+      ".read": "auth != null && root.child('admin').child('admins').child(auth.uid).val() === true",
+      ".write": "auth != null && root.child('admin').child('admins').child(auth.uid).val() === true"
+    }
+  }
+}

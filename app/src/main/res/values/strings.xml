@@ -1,0 +1,159 @@
+<resources>
+    <string name="app_name">The Myth</string>
+
+    <string name="splash_tagline">3 VS 3 IDLE AUTO BATTLE</string>
+    <string name="splash_preparing">Menyiapkan dunia…</string>
+    <string name="splash_retry">Coba Lagi</string>
+    <string name="splash_sign_out">Keluar</string>
+
+    <string name="login_title">Masuk ke Arunika</string>
+    <string name="login_subtitle">Panggil kembali nama para Mitos dan susun tim terkuatmu.</string>
+    <string name="login_guest">Main sebagai Tamu</string>
+    <string name="login_google">Masuk dengan Google</string>
+    <string name="login_terms">Dengan masuk, kamu menyetujui Ketentuan Penggunaan dan Kebijakan Privasi The Myth.</string>
+    <string name="login_connecting">Menghubungkan…</string>
+    <string name="login_google_unavailable_title">Google Sign-In belum aktif</string>
+    <string name="login_google_unavailable_message">Tambahkan SHA-1 aplikasi ini di Firebase Console, aktifkan metode Google, lalu unduh ulang google-services.json.\n\nSementara itu kamu tetap bisa main sebagai Tamu.</string>
+    <string name="login_google_failed">Gagal masuk dengan Google. Coba lagi.</string>
+    <string name="login_cancelled">Masuk dengan Google dibatalkan.</string>
+    <string name="login_guest_failed">Gagal masuk sebagai tamu. Coba lagi.</string>
+    <string name="login_already_signed_in">Kamu sudah masuk.</string>
+    <string name="login_conflict_title">Akun Google sudah terpakai</string>
+    <string name="login_conflict_message">Akun Google ini sudah terhubung dengan progres lain. Masuk ke akun tersebut? Progres tamu saat ini tidak akan digabungkan.</string>
+    <string name="login_conflict_continue">Masuk ke akun itu</string>
+    <string name="login_ok">Mengerti</string>
+
+    <string name="home_welcome">Selamat datang,</string>
+    <string name="home_level">Level %1$d · %2$s</string>
+    <string name="home_uid">UID %1$s</string>
+    <string name="home_formation">Formasi saat ini</string>
+    <string name="home_formation_empty">Belum ada Mitos</string>
+    <string name="home_actions">Aksi Cepat</string>
+    <string name="home_play">Mulai Petualangan</string>
+    <string name="home_roster">Mitos</string>
+    <string name="home_formation_button">Formasi</string>
+    <string name="home_arena">Arena</string>
+    <string name="home_logout">Keluar</string>
+    <string name="home_logout_title">Keluar dari akun?</string>
+    <string name="home_logout_message">Progres tersimpan di server. Untuk akun tamu, progres tidak bisa dipulihkan jika aplikasi dihapus.</string>
+    <string name="home_logout_confirm">Keluar</string>
+    <string name="home_logout_cancel">Batal</string>
+    <string name="home_coming_soon">Fitur ini menyusul di milestone berikutnya.</string>
+    <string name="home_loading">Memuat profil…</string>
+    <string name="home_retry">Coba Lagi</string>
+    <string name="home_copy_uid">Ketuk untuk menyalin UID</string>
+    <string name="home_uid_copied">UID disalin.</string>
+    <string name="home_tip_title">Tips</string>
+    <string name="home_tip_body">Tiga Mitos dengan elemen yang sama mendapat bonus sinergi. Cek formasi sebelum bertarung.</string>
+    <string name="home_guest_badge">Akun Tamu</string>
+    <string name="home_google_badge">Akun Google</string>
+    <string name="home_default_username">Pemanggil</string>
+    <string name="home_avatar_initial">P</string>
+    <string name="home_level_placeholder">Level 1 · Bronze</string>
+    <string name="home_uid_placeholder">UID -</string>
+    <string name="home_zero">0</string>
+
+    <string name="action_back">Kembali</string>
+    <string name="action_retry">Coba Lagi</string>
+    <string name="action_save">Simpan</string>
+
+    <string name="element_fire">Api</string>
+    <string name="element_water">Air</string>
+    <string name="element_wind">Angin</string>
+    <string name="element_earth">Tanah</string>
+    <string name="element_lightning">Petir</string>
+
+    <string name="rarity_common">Biasa</string>
+    <string name="rarity_uncommon">Tak Biasa</string>
+    <string name="rarity_rare">Langka</string>
+    <string name="rarity_epic">Epik</string>
+    <string name="rarity_legendary">Legendaris</string>
+    <string name="rarity_mythic">Mitos</string>
+
+    <string name="role_assassin">Assassin</string>
+    <string name="role_tank">Tank</string>
+    <string name="role_fighter">Petarung</string>
+    <string name="role_mage">Penyihir</string>
+    <string name="role_support">Pendukung</string>
+
+    <string name="stat_hp">HP</string>
+    <string name="stat_atk">ATK</string>
+    <string name="stat_def">DEF</string>
+    <string name="stat_spd">SPD</string>
+    <string name="stat_crit">Crit</string>
+    <string name="stat_crit_dmg">Crit DMG</string>
+    <string name="stat_acc">Akurasi</string>
+    <string name="stat_eva">Evasi</string>
+    <string name="stat_res">Resist</string>
+
+    <string name="skill_basic">Dasar</string>
+    <string name="skill_one">Skill 1</string>
+    <string name="skill_two">Skill 2</string>
+    <string name="skill_ultimate">Ultimate</string>
+    <string name="roster_skills_block">%1$s · Lv %2$d\n%3$s · Lv %4$d\n%5$s · Lv %6$d\n%7$s · Lv %8$d</string>
+
+    <string name="roster_title">Mitos</string>
+    <plurals name="roster_count">
+        <item quantity="one">%1$d Mitos dimiliki</item>
+        <item quantity="other">%1$d Mitos dimiliki</item>
+    </plurals>
+    <string name="roster_count_empty">Roster kosong</string>
+    <string name="roster_card_level">Lv %1$d · %2$d★</string>
+    <string name="roster_manage_formation">Atur Formasi</string>
+    <string name="roster_filter_all">Semua</string>
+    <string name="roster_empty_title">Belum ada Mitos</string>
+    <string name="roster_empty_body">Selesaikan petualangan pertama untuk memanggil Mitos pertamamu.</string>
+    <string name="roster_filter_empty">Tidak ada Mitos dengan elemen ini.</string>
+    <string name="roster_detail_empty">Pilih salah satu Mitos untuk melihat detailnya.</string>
+    <string name="roster_detail_level">Level %1$d · %2$d★</string>
+    <string name="roster_detail_cp">CP %1$s</string>
+    <string name="roster_detail_stats">Statistik</string>
+    <string name="roster_detail_skills">Skill</string>
+    <string name="roster_detail_formation">Atur di Formasi</string>
+    <string name="roster_detail_progress">Awakening %1$d · Breakthrough %2$d</string>
+
+    <string name="formation_title">Formasi</string>
+    <string name="formation_subtitle">3 Mitos · Idle Auto Battle</string>
+    <string name="formation_slot_front">Depan</string>
+    <string name="formation_slot_mid">Tengah</string>
+    <string name="formation_slot_back">Belakang</string>
+    <string name="formation_slot_empty">Ketuk untuk memilih</string>
+    <string name="formation_slot_cp">CP %1$s</string>
+    <string name="formation_remove">Kosongkan slot</string>
+    <string name="formation_total_cp">CP Tim %1$s</string>
+    <string name="strategy_balanced">Seimbang</string>
+    <string name="strategy_focus_backline">Fokus Belakang</string>
+    <string name="strategy_protect_ally">Lindungi Rekan</string>
+    <string name="strategy_burst">Burst</string>
+    <string name="strategy_balanced_desc">AI menyerang target dengan pertahanan terlemah.</string>
+    <string name="strategy_focus_backline_desc">AI memprioritaskan Penyihir dan Pendukung di barisan belakang.</string>
+    <string name="strategy_protect_ally_desc">AI menjaga rekan ber-HP terendah dan memancing serangan.</string>
+    <string name="strategy_burst_desc">AI menumpuk ultimate di ronde pertama.</string>
+    <string name="formation_synergy">Sinergi %1$s aktif: +10%% stat tim.</string>
+    <string name="formation_no_synergy">Sinergi: 3 Mitos satu elemen.</string>
+    <string name="formation_picker_title">Pilih Mitos</string>
+    <string name="formation_picker_hint">Ketuk slot, lalu pilih Mitos. Mitos yang sudah dipakai akan pindah slot.</string>
+    <string name="formation_picker_empty">Roster masih kosong. Kumpulkan Mitos dulu.</string>
+    <string name="formation_saved">Formasi tersimpan.</string>
+    <string name="formation_saving">Menyimpan…</string>
+    <string name="formation_save_failed">Gagal menyimpan formasi. Coba lagi.</string>
+    <string name="formation_dirty_hint">Perubahan belum disimpan.</string>
+    <string name="formation_discard_title">Buang perubahan?</string>
+    <string name="formation_discard_message">Perubahan formasi belum disimpan.</string>
+    <string name="formation_discard_confirm">Buang</string>
+    <string name="formation_discard_cancel">Lanjut Edit</string>
+    <string name="formation_loading">Memuat formasi…</string>
+    <string name="formation_error">Gagal memuat formasi.</string>
+
+    <string name="error_network">Tidak ada koneksi. Periksa internetmu.</string>
+    <string name="error_session">Sesi berakhir. Silakan masuk lagi.</string>
+    <string name="error_generic">Terjadi kesalahan. Coba lagi.</string>
+    <string name="error_too_many_requests">Terlalu banyak percobaan. Tunggu sebentar lalu coba lagi.</string>
+    <string name="error_invalid_credential">Kredensial login tidak valid.</string>
+    <string name="error_method_disabled">Metode login ini belum diaktifkan di Firebase.</string>
+    <string name="error_play_services">Google Play Services tidak tersedia atau perlu diperbarui.</string>
+    <string name="error_db_permission">Akses database ditolak. Pasang Firebase Rules sesuai docs/03-DATABASE.md.</string>
+    <string name="error_db_disconnected">Koneksi database terputus. Coba lagi.</string>
+    <string name="error_db_generic">Gagal membaca data. Coba lagi.</string>
+    <string name="error_profile">Profil tidak dapat dibuat. Coba lagi.</string>
+</resources>

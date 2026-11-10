@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_slot_state"
+    android:clickable="true"
+    android:focusable="true"
+    android:minHeight="128dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:padding="8dp">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tvSlotLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="@style/TextAppearance.TheMyth.Caption" />
+
+            <View
+                android:id="@+id/vSlotElement"
+                android:layout_width="8dp"
+                android:layout_height="8dp"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/bg_dot"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <zhaf.media.themyth.ui.common.CharacterPortraitView
+            android:id="@+id/vSlotPortrait"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/bg_portrait" />
+
+        <TextView
+            android:id="@+id/tvSlotName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:ellipsize="end"
+            android:gravity="center"
+            android:maxLines="2"
+            android:minLines="1"
+            android:textColor="@color/text_primary"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvSlotCp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:gravity="center"
+            android:textAppearance="@style/TextAppearance.TheMyth.Caption" />
+    </LinearLayout>
+
+    <ImageButton
+        android:id="@+id/btnSlotRemove"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:layout_gravity="top|end"
+        android:layout_marginTop="28dp"
+        android:layout_marginEnd="8dp"
+        android:background="@drawable/bg_badge"
+        android:contentDescription="@string/formation_remove"
+        android:padding="6dp"
+        android:src="@drawable/ic_close"
+        android:visibility="gone"
+        app:tint="@color/text_primary" />
+
+</FrameLayout>

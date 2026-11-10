@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "characters": [
+    {
+      "id": "gatotkaca",
+      "name": "Gatotkaca",
+      "title": "Otot Kawat Tulang Besi",
+      "element": "fire",
+      "role": "fighter",
+      "rarity": "epic",
+      "sprite": "gatotkaca"
+    },
+    {
+      "id": "nyai_roro_kidul",
+      "name": "Nyai Roro Kidul",
+      "title": "Ratu Laut Kidul",
+      "element": "water",
+      "role": "mage",
+      "rarity": "legendary",
+      "sprite": "nyairorokidul"
+    }
+  ]
+}

@@ -1,0 +1,159 @@
+<resources>
+    <string name="app_name">The Myth</string>
+
+    <string name="splash_tagline">3 VS 3 IDLE AUTO BATTLE</string>
+    <string name="splash_preparing">Preparing the world…</string>
+    <string name="splash_retry">Try Again</string>
+    <string name="splash_sign_out">Sign Out</string>
+
+    <string name="login_title">Enter Arunika</string>
+    <string name="login_subtitle">Call back the names of the Myths and assemble your strongest team.</string>
+    <string name="login_guest">Play as Guest</string>
+    <string name="login_google">Sign in with Google</string>
+    <string name="login_terms">By signing in, you agree to The Myth\'s Terms of Use and Privacy Policy.</string>
+    <string name="login_connecting">Connecting…</string>
+    <string name="login_google_unavailable_title">Google Sign-In is not active</string>
+    <string name="login_google_unavailable_message">Add this app\'s SHA-1 in Firebase Console, enable the Google method, then download google-services.json again.\n\nMeanwhile you can still play as a Guest.</string>
+    <string name="login_google_failed">Google sign-in failed. Try again.</string>
+    <string name="login_cancelled">Google sign-in cancelled.</string>
+    <string name="login_guest_failed">Guest sign-in failed. Try again.</string>
+    <string name="login_already_signed_in">You are already signed in.</string>
+    <string name="login_conflict_title">Google account already in use</string>
+    <string name="login_conflict_message">This Google account is already linked to another progress. Sign in to that account? Your current guest progress will not be merged.</string>
+    <string name="login_conflict_continue">Sign in to that account</string>
+    <string name="login_ok">Got it</string>
+
+    <string name="home_welcome">Welcome,</string>
+    <string name="home_level">Level %1$d · %2$s</string>
+    <string name="home_uid">UID %1$s</string>
+    <string name="home_formation">Current formation</string>
+    <string name="home_formation_empty">No Myths yet</string>
+    <string name="home_actions">Quick Actions</string>
+    <string name="home_play">Start Adventure</string>
+    <string name="home_roster">Myths</string>
+    <string name="home_formation_button">Formation</string>
+    <string name="home_arena">Arena</string>
+    <string name="home_logout">Sign Out</string>
+    <string name="home_logout_title">Sign out of your account?</string>
+    <string name="home_logout_message">Progress is saved on the server. For guest accounts, progress cannot be recovered if the app is uninstalled.</string>
+    <string name="home_logout_confirm">Sign Out</string>
+    <string name="home_logout_cancel">Cancel</string>
+    <string name="home_coming_soon">This feature arrives in the next milestone.</string>
+    <string name="home_loading">Loading profile…</string>
+    <string name="home_retry">Try Again</string>
+    <string name="home_copy_uid">Tap to copy UID</string>
+    <string name="home_uid_copied">UID copied.</string>
+    <string name="home_tip_title">Tip</string>
+    <string name="home_tip_body">Three Myths of the same element gain a synergy bonus. Check your formation before battle.</string>
+    <string name="home_guest_badge">Guest Account</string>
+    <string name="home_google_badge">Google Account</string>
+    <string name="home_default_username">Summoner</string>
+    <string name="home_avatar_initial">S</string>
+    <string name="home_level_placeholder">Level 1 · Bronze</string>
+    <string name="home_uid_placeholder">UID -</string>
+    <string name="home_zero">0</string>
+
+    <string name="action_back">Back</string>
+    <string name="action_retry">Try Again</string>
+    <string name="action_save">Save</string>
+
+    <string name="element_fire">Fire</string>
+    <string name="element_water">Water</string>
+    <string name="element_wind">Wind</string>
+    <string name="element_earth">Earth</string>
+    <string name="element_lightning">Lightning</string>
+
+    <string name="rarity_common">Common</string>
+    <string name="rarity_uncommon">Uncommon</string>
+    <string name="rarity_rare">Rare</string>
+    <string name="rarity_epic">Epic</string>
+    <string name="rarity_legendary">Legendary</string>
+    <string name="rarity_mythic">Mythic</string>
+
+    <string name="role_assassin">Assassin</string>
+    <string name="role_tank">Tank</string>
+    <string name="role_fighter">Fighter</string>
+    <string name="role_mage">Mage</string>
+    <string name="role_support">Support</string>
+
+    <string name="stat_hp">HP</string>
+    <string name="stat_atk">ATK</string>
+    <string name="stat_def">DEF</string>
+    <string name="stat_spd">SPD</string>
+    <string name="stat_crit">Crit</string>
+    <string name="stat_crit_dmg">Crit DMG</string>
+    <string name="stat_acc">Accuracy</string>
+    <string name="stat_eva">Evasion</string>
+    <string name="stat_res">Resist</string>
+
+    <string name="skill_basic">Basic</string>
+    <string name="skill_one">Skill 1</string>
+    <string name="skill_two">Skill 2</string>
+    <string name="skill_ultimate">Ultimate</string>
+    <string name="roster_skills_block">%1$s · Lv %2$d\n%3$s · Lv %4$d\n%5$s · Lv %6$d\n%7$s · Lv %8$d</string>
+
+    <string name="roster_title">Myths</string>
+    <plurals name="roster_count">
+        <item quantity="one">%1$d Myth owned</item>
+        <item quantity="other">%1$d Myths owned</item>
+    </plurals>
+    <string name="roster_count_empty">Roster empty</string>
+    <string name="roster_card_level">Lv %1$d · %2$d★</string>
+    <string name="roster_manage_formation">Manage Formation</string>
+    <string name="roster_filter_all">All</string>
+    <string name="roster_empty_title">No Myths yet</string>
+    <string name="roster_empty_body">Finish your first adventure to summon your first Myth.</string>
+    <string name="roster_filter_empty">No Myths with this element.</string>
+    <string name="roster_detail_empty">Select a Myth to see its details.</string>
+    <string name="roster_detail_level">Level %1$d · %2$d★</string>
+    <string name="roster_detail_cp">CP %1$s</string>
+    <string name="roster_detail_stats">Stats</string>
+    <string name="roster_detail_skills">Skills</string>
+    <string name="roster_detail_formation">Manage in Formation</string>
+    <string name="roster_detail_progress">Awakening %1$d · Breakthrough %2$d</string>
+
+    <string name="formation_title">Formation</string>
+    <string name="formation_subtitle">3 Myths · Idle Auto Battle</string>
+    <string name="formation_slot_front">Front</string>
+    <string name="formation_slot_mid">Middle</string>
+    <string name="formation_slot_back">Back</string>
+    <string name="formation_slot_empty">Tap to select</string>
+    <string name="formation_slot_cp">CP %1$s</string>
+    <string name="formation_remove">Clear slot</string>
+    <string name="formation_total_cp">Team CP %1$s</string>
+    <string name="strategy_balanced">Balanced</string>
+    <string name="strategy_focus_backline">Focus Backline</string>
+    <string name="strategy_protect_ally">Protect Ally</string>
+    <string name="strategy_burst">Burst</string>
+    <string name="strategy_balanced_desc">AI attacks the target with the weakest defense.</string>
+    <string name="strategy_focus_backline_desc">AI prioritizes Mages and Supports in the backline.</string>
+    <string name="strategy_protect_ally_desc">AI guards the lowest-HP ally and draws attacks.</string>
+    <string name="strategy_burst_desc">AI stacks ultimates in the first round.</string>
+    <string name="formation_synergy">%1$s synergy active: +10%% team stats.</string>
+    <string name="formation_no_synergy">Synergy: 3 Myths, same element.</string>
+    <string name="formation_picker_title">Pick a Myth</string>
+    <string name="formation_picker_hint">Tap a slot, then pick a Myth. A Myth already in use moves slots.</string>
+    <string name="formation_picker_empty">Your roster is empty. Collect Myths first.</string>
+    <string name="formation_saved">Formation saved.</string>
+    <string name="formation_saving">Saving…</string>
+    <string name="formation_save_failed">Failed to save formation. Try again.</string>
+    <string name="formation_dirty_hint">Changes not saved yet.</string>
+    <string name="formation_discard_title">Discard changes?</string>
+    <string name="formation_discard_message">Your formation changes have not been saved.</string>
+    <string name="formation_discard_confirm">Discard</string>
+    <string name="formation_discard_cancel">Keep Editing</string>
+    <string name="formation_loading">Loading formation…</string>
+    <string name="formation_error">Failed to load formation.</string>
+
+    <string name="error_network">No connection. Check your internet.</string>
+    <string name="error_session">Session expired. Please sign in again.</string>
+    <string name="error_generic">Something went wrong. Try again.</string>
+    <string name="error_too_many_requests">Too many attempts. Wait a moment and try again.</string>
+    <string name="error_invalid_credential">Invalid sign-in credential.</string>
+    <string name="error_method_disabled">This sign-in method is not enabled in Firebase.</string>
+    <string name="error_play_services">Google Play Services is unavailable or needs an update.</string>
+    <string name="error_db_permission">Database access denied. Install the Firebase Rules from docs/03-DATABASE.md.</string>
+    <string name="error_db_disconnected">Database connection lost. Try again.</string>
+    <string name="error_db_generic">Failed to read data. Try again.</string>
+    <string name="error_profile">Profile could not be created. Try again.</string>
+</resources>

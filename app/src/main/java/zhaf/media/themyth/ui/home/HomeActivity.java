@@ -35,6 +35,7 @@ import zhaf.media.themyth.data.model.PlayerProfile;
 import zhaf.media.themyth.data.staticdata.CharacterCatalog;
 import zhaf.media.themyth.data.staticdata.CharacterTemplate;
 import zhaf.media.themyth.databinding.ActivityHomeBinding;
+import zhaf.media.themyth.ui.battle.BattleActivity;
 import zhaf.media.themyth.ui.formation.FormationActivity;
 import zhaf.media.themyth.ui.login.LoginActivity;
 import zhaf.media.themyth.ui.roster.RosterActivity;
@@ -88,7 +89,8 @@ public class HomeActivity extends AppCompatActivity {
         View.OnClickListener comingSoon = v ->
                 Snackbar.make(binding.getRoot(), R.string.home_coming_soon,
                         Snackbar.LENGTH_SHORT).show();
-        binding.btnPlay.setOnClickListener(comingSoon);
+        binding.btnPlay.setOnClickListener(
+                v -> startActivity(new Intent(this, BattleActivity.class)));
         binding.btnArena.setOnClickListener(comingSoon);
         binding.btnRoster.setOnClickListener(
                 v -> startActivity(new Intent(this, RosterActivity.class)));

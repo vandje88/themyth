@@ -33,6 +33,7 @@ import zhaf.media.themyth.core.UiErrors;
 import zhaf.media.themyth.data.model.Currencies;
 import zhaf.media.themyth.data.model.PlayerProfile;
 import zhaf.media.themyth.data.repository.MailRepository;
+import zhaf.media.themyth.data.repository.MetaRepository;
 import zhaf.media.themyth.data.repository.SocialRepository;
 import zhaf.media.themyth.data.staticdata.CharacterCatalog;
 import zhaf.media.themyth.data.staticdata.CharacterTemplate;
@@ -45,6 +46,9 @@ import zhaf.media.themyth.ui.guild.GuildActivity;
 import zhaf.media.themyth.ui.inventory.InventoryActivity;
 import zhaf.media.themyth.ui.login.LoginActivity;
 import zhaf.media.themyth.ui.mail.MailActivity;
+import zhaf.media.themyth.ui.missions.MissionsActivity;
+import zhaf.media.themyth.ui.profile.ProfileActivity;
+import zhaf.media.themyth.ui.ranking.RankingActivity;
 import zhaf.media.themyth.ui.roster.RosterActivity;
 import zhaf.media.themyth.ui.shop.ShopActivity;
 import zhaf.media.themyth.ui.summon.SummonActivity;
@@ -115,6 +119,12 @@ public class HomeActivity extends AppCompatActivity {
                 v -> startActivity(new Intent(this, FriendsActivity.class)));
         binding.btnGuild.setOnClickListener(
                 v -> startActivity(new Intent(this, GuildActivity.class)));
+        binding.btnMissions.setOnClickListener(
+                v -> startActivity(new Intent(this, MissionsActivity.class)));
+        binding.btnProfile.setOnClickListener(
+                v -> startActivity(new Intent(this, ProfileActivity.class)));
+        binding.btnRanking.setOnClickListener(
+                v -> startActivity(new Intent(this, RankingActivity.class)));
 
         new MailRepository().seedWelcome(uid);
     }
@@ -124,6 +134,7 @@ public class HomeActivity extends AppCompatActivity {
         super.onStart();
         if (uid != null) {
             attachListeners();
+            MetaRepository.touch(uid, System.currentTimeMillis());
         }
     }
 

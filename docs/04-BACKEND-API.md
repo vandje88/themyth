@@ -115,6 +115,35 @@ Semua fitur sosial berjalan langsung di RTDB tanpa Cloud Functions dan tanpa nod
 
 Batas fase 1 (disadari): rules hanya bisa membatasi besar damage dan frekuensi serangan boss, bukan memastikan simulasi; join guild tertutup masih bisa dipaksa karena rules hanya melihat `players/{uid}/guild`; kegagalan transfer reward dipulihkan saat layar dibuka lagi, bukan oleh server.
 
+### 2.5 Meta Harian, Profil, Ranking (M9)
+
+Semua alur memakai RTDB langsung dan transaksi pada `players/{uid}`; tidak ada node presence maupun Functions.
+
+**Presence ringan.** `HomeActivity.onStart` memanggil `MetaRepository.touch` (transaksi pemain): menulis `meta/lastSeen`, menginisialisasi `meta/idle/at` bila belum ada, dan memperbarui `profile/lastOnline`. Ini juga dasar tampilan "Terakhir online" di Profil.
+
+**Login harian (`claimLogin`).**
+1. Transaksi membaca `meta/login/lastDay` dan `streak`.
+2. `DailyLoginLogic.canClaim` menolak jika hari UTC sama (`ERROR_ALREADY`).
+3. Hari berikutnya dihitung dari selisih hari: kemarin → +1 (7→1), lebih lama → 1.
+4. Reward hari itu ditambahkan ke `currencies` dan `lastDay/streak/lastClaimAt` ditulis dalam transaksi yang sama.
+
+**Idle chest (`claimIdle`).**
+1. Transaksi membaca `meta/idle/at`; akumulasi = `min(now − at, cap(level))`, cap 8 jam + 6 menit/level (maks 24 jam).
+2. Jika < 10 menit → `ERROR_NOT_READY` (tidak ada perubahan).
+3. Reward 5 coin/menit + 1 energy/30 menit ditambahkan ke `currencies`.
+4. `idle/at` dimajukan ke `now` (atau `now − sisaDetik` bila belum cap) dan `lastClaim` diperbarui.
+
+**Misi harian/mingguan.**
+- Progres ditulis `MetaRepository.addMissionProgress` sebagai efek samping aksi yang sudah divalidasi: kemenangan `BattleActivity` (training/arena), `settleArena` sukses, `GuildRepository.donate` sukses, `SummonRepository.pull` sukses, dan `attackBoss` sukses.
+- Transaksi menjepit nilai ke 0..target, sehingga pengulangan aksi tidak melewati target.
+- `claimMission` menulis reward dan penanda `meta/claims/{periode}_{missionId}` dalam satu transaksi; percobaan kedua mendapat `ERROR_ALREADY`.
+
+**Profil & gelar/badge.** `ProfileActivity` menggabungkan `profile`, `formation` (CP + favorit), `arena` (rating/rekor), `guild/id`, `progression` (ukuran roster + mythic), dan `meta` (bossAttacks). Pilihan gelar/badge divalidasi client terhadap `TitleCatalog`/`BadgeCatalog` lalu ditulis ke `profile/titleId` atau `profile/badgeId`.
+
+**Ranking.** `RankingActivity` memakai `ArenaRepository.loadLeaderboard` (top 20 `rankings/{season}/arena` diurutkan `score`) dan listener `rankings/{season}/arena/{uid}` untuk entri sendiri. Di luar top 20 hanya skor yang dapat ditentukan; nomor peringkat butuh Functions.
+
+Batas fase 1 (disadari): transaksi mencegah reward ganda dan progres melebihi target, tetapi tidak membuktikan aksi benar-benar terjadi; klaim login/idle memakai waktu perangkat. Sebelum reward bernilai nyata, pindahkan validasi ke Functions (`onWrite` progres, `onCall` klaim).
+
 ---
 
 ## 3. SIKLUS HIDUP BATTLE (STATE MACHINE)

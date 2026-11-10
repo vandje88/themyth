@@ -23,6 +23,7 @@ import java.util.Set;
 import zhaf.media.themyth.R;
 import zhaf.media.themyth.core.FirebaseRefs;
 import zhaf.media.themyth.data.gacha.GachaRoller;
+import zhaf.media.themyth.data.meta.MissionCatalog;
 import zhaf.media.themyth.data.staticdata.CharacterCatalog;
 import zhaf.media.themyth.data.staticdata.CharacterTemplate;
 import zhaf.media.themyth.data.staticdata.GachaPool;
@@ -337,6 +338,8 @@ public final class SummonRepository {
                     }
                     shardCount += result.shards;
                 }
+                MetaRepository.addMissionProgress(uid, MissionCatalog.DAILY_SUMMON, 1,
+                        System.currentTimeMillis());
                 callback.onSuccess(new Result(
                         rolled[0],
                         newCount,

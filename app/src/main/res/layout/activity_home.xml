@@ -418,6 +418,38 @@
                         android:layout_marginTop="12dp"
                         android:text="@string/home_inventory" />
 
+                    <androidx.appcompat.widget.AppCompatButton
+                        android:id="@+id/btnMissions"
+                        style="@style/Widget.TheMyth.Button.Secondary"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:text="@string/home_missions" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:orientation="horizontal">
+
+                        <androidx.appcompat.widget.AppCompatButton
+                            android:id="@+id/btnProfile"
+                            style="@style/Widget.TheMyth.Button.Secondary"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/home_profile" />
+
+                        <androidx.appcompat.widget.AppCompatButton
+                            android:id="@+id/btnRanking"
+                            style="@style/Widget.TheMyth.Button.Secondary"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_weight="1"
+                            android:text="@string/home_ranking" />
+                    </LinearLayout>
+
                     <TextView
                         android:id="@+id/tvFooterVersion"
                         android:layout_width="wrap_content"

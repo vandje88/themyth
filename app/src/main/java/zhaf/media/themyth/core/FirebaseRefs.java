@@ -24,6 +24,14 @@ public final class FirebaseRefs {
         return player(uid).child("currencies");
     }
 
+    public static DatabaseReference meta(String uid) {
+        return player(uid).child("meta");
+    }
+
+    public static DatabaseReference metaClaims(String uid) {
+        return meta(uid).child("claims");
+    }
+
     public static DatabaseReference roster(String uid) {
         return player(uid).child("roster");
     }

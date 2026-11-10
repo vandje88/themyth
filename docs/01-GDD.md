@@ -588,3 +588,42 @@ Should-have: guild, event, tower, boss, friend.
 Could-have: live PvP, co-op realtime, tournament otomatis.
 
 Won't (v1): cross-server, trading, real-time chat global, Storage/CDN aset.
+
+---
+
+## 31. IMPLEMENTASI M9 — META HARIAN
+
+M9 mengisi fitur meta yang sudah dirancang di §12, §13, §16, §17, dan §24 dengan versi fase 1 (tanpa Cloud Functions):
+
+### 31.1 Login harian (implementasi §17)
+- Siklus 7 hari dengan hadiah: hari 1–7 = coin 2.000 / 3.000 / 4.000 / 5.000 / 6.000 / 8.000 / 12.000, ditambah diamond (hari 3–7: 10/10/15/20/50), energy (hari 2, 3, 5, 7), dan tiket summon (hari 4, 6, 7).
+- Aturan streak: klaim di hari yang sama tidak menambah; klaim kemarin menambah 1 (hari 7 kembali ke 1); bolong sehari memulai lagi dari hari 1.
+- Periode memakai hari UTC (`yyyy-MM-dd`) yang sama dengan misi sosial.
+
+### 31.2 Idle chest (implementasi §17)
+- 5 coin per menit + 1 energy per 30 menit; minimal 10 menit sebelum bisa diklaim.
+- Cap 8 jam pada level 1, +6 menit per level, maksimum 24 jam.
+- Sisa detik (di bawah 1 menit) dipertahankan saat klaim agar tidak hilang.
+
+### 31.3 Misi harian & mingguan (implementasi §16)
+| Misi | Target | Hadiah | Periode |
+|---|---|---|---|
+| Menang 3 pertarungan | 3 | 3.000 coin | harian |
+| Masuk Arena | 1 | 1.500 coin + 5 diamond | harian |
+| Summon 1× | 1 | 1.000 coin + 1 tiket | harian |
+| Donasi guild | 1 | 2.000 coin | harian |
+| Menang 15 pertarungan | 15 | 15.000 coin + 30 diamond | mingguan |
+| Menang 5 Arena | 5 | 10.000 coin + 20 diamond | mingguan |
+| Serang guild boss | 3 | 8.000 coin + 10 diamond | mingguan |
+
+Progres hanya ditambahkan setelah aksi tervalidasi berhasil (settlement arena, serangan boss diterima, summon sukses, donasi sukses, kemenangan training). Periode baru otomatis mulai dari 0 karena kunci progres memuat tanggal/minggu UTC.
+
+### 31.4 Profil, badge, dan gelar (implementasi §12–§13)
+- Profil menampilkan level, tier + rating arena, CP formasi, rekor menang/kalah, win rate, guild, mitos favorit (slot pertama), dan terakhir online.
+- Gelar: Rookie Myth (default), Shadow Hunter (10 kemenangan arena), Master Shinobi (rating 1.300), Elite Warrior (level akun 10), Legendary Myth (100 kemenangan arena), Grandmaster (rating 1.900).
+- Badge: First Victory (1 kemenangan arena), Myth Master (punya 1 mythic), Legendary Fighter (50 kemenangan arena), PvP Champion (rating 1.900), Dungeon Explorer (10 serangan boss), Collector (10 myth di roster), Guild Warrior (bergabung guild), Top Ranking (rating 1.600). Badge yang belum memenuhi syarat tampil "Terkunci".
+
+### 31.5 Ranking (implementasi §14.2)
+- Memakai papan `rankings/{season}/arena` yang ditulis settlement arena; layar menampilkan top 20, menandai baris sendiri, dan membaca entri sendiri untuk skor di luar top 20.
+- Tanpa Functions, nomor peringkat di luar top 20 tidak dapat dihitung; UI menampilkan skor tanpa nomor.
+

@@ -25,6 +25,8 @@
           "wins": { ".validate": "newData.isNumber() && newData.val() >= 0" },
           "losses": { ".validate": "newData.isNumber() && newData.val() >= 0" },
           "guildId": { ".validate": "newData.isString() || newData.val() === null" },
+          "titleId": { ".validate": "newData.isString() && newData.val().length <= 40" },
+          "badgeId": { ".validate": "newData.isString() && newData.val().length <= 40" },
           "lastOnline": { ".validate": "newData.isNumber()" },
           "$other": { ".validate": true }
         },
@@ -149,6 +151,39 @@
         },
         "mailIndex": { ".read": true },
         "requests": { "$reqId": { ".validate": "newData.child('status').val() === 'DONE'" } },
+        "meta": {
+          "lastSeen": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+          "bestRating": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 5000" },
+          "bossAttacks": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+          "idle": {
+            "at": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+            "lastClaim": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+            "$other": { ".validate": true }
+          },
+          "login": {
+            "lastDay": { ".validate": "newData.isString() && newData.val().length <= 10" },
+            "streak": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 7" },
+            "lastClaimAt": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+            "$other": { ".validate": true }
+          },
+          "missions": {
+            "d": {
+              "$day": {
+                "$missionId": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000" }
+              }
+            },
+            "w": {
+              "$week": {
+                "$missionId": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000" }
+              }
+            },
+            "$other": { ".validate": true }
+          },
+          "claims": {
+            "$key": { ".validate": "newData.val() === true" }
+          },
+          "$other": { ".validate": true }
+        },
         "$other": { ".validate": true }
       }
     },

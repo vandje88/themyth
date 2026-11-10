@@ -8,14 +8,21 @@ public final class PlayerProfile {
     public final String username;
     public final String rank;
     public final String titleId;
+    public final String badgeId;
+    public final String guildId;
     public final int level;
+    public final long lastOnline;
 
-    private PlayerProfile(String uid, String username, String rank, String titleId, int level) {
+    private PlayerProfile(String uid, String username, String rank, String titleId,
+                          String badgeId, String guildId, int level, long lastOnline) {
         this.uid = uid;
         this.username = username;
         this.rank = rank;
         this.titleId = titleId;
+        this.badgeId = badgeId;
+        this.guildId = guildId;
         this.level = level;
+        this.lastOnline = lastOnline;
     }
 
     public static PlayerProfile from(DataSnapshot snapshot, String fallbackUid) {
@@ -23,14 +30,20 @@ public final class PlayerProfile {
         String username = snapshot.child("username").getValue(String.class);
         String rank = snapshot.child("rank").getValue(String.class);
         String titleId = snapshot.child("titleId").getValue(String.class);
+        String badgeId = snapshot.child("badgeId").getValue(String.class);
+        String guildId = snapshot.child("guildId").getValue(String.class);
         Long level = snapshot.child("level").getValue(Long.class);
+        Long lastOnline = snapshot.child("lastOnline").getValue(Long.class);
 
         return new PlayerProfile(
                 uid != null ? uid : fallbackUid,
                 username != null ? username : "Pemanggil",
                 rank != null ? rank : "bronze",
                 titleId != null ? titleId : "rookie_myth",
-                level != null ? level.intValue() : 1
+                badgeId != null ? badgeId : "none",
+                guildId,
+                level != null ? level.intValue() : 1,
+                lastOnline != null ? lastOnline : 0L
         );
     }
 }

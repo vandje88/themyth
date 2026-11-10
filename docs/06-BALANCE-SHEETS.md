@@ -240,6 +240,21 @@ Contoh stage 34, 8 jam, guild level 5:
 
 Klaim memakai selisih `lastClaimAt` dan `ServerValue.TIMESTAMP`, bukan jam device.
 
+> **Implementasi M9 (fase 1, angka final saat ini):** idle = **5 coin/menit** + **1 energy/30 menit**; minimal klaim **10 menit**; cap **8 jam + 6 menit/level** (maks 24 jam). Contoh: 8 jam 10 detik = 2.400 coin + 16 energy, sisa 10 detik tetap disimpan. Angka stage/guild di atas adalah target desain jangka panjang; M9 memakai versi sederhana yang tidak bergantung pada `static/` agar bisa diuji tanpa server.
+
+### 11.1 Login harian (implementasi M9)
+| Hari | Coin | Diamond | Energy | Ticket |
+|---|---|---|---|---|
+| 1 | 2.000 | — | — | — |
+| 2 | 3.000 | — | 10 | — |
+| 3 | 4.000 | 10 | 10 | — |
+| 4 | 5.000 | 10 | — | 1 |
+| 5 | 6.000 | 15 | 10 | — |
+| 6 | 8.000 | 20 | — | 1 |
+| 7 | 12.000 | 50 | 20 | 1 |
+
+Siklus 7 hari; hari ke-8 kembali ke hari 1. Total satu siklus: 40.000 coin, 105 diamond, 50 energy, 3 tiket.
+
 ---
 
 ## 12. EKONOMI HARIAN (PEMAIN AKTIF, F2P)

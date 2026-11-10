@@ -110,6 +110,27 @@
             android:exported="false"
             android:screenOrientation="sensorLandscape"
             android:theme="@style/Theme.TheMyth" />
+
+        <activity
+            android:name=".ui.missions.MissionsActivity"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:exported="false"
+            android:screenOrientation="sensorLandscape"
+            android:theme="@style/Theme.TheMyth" />
+
+        <activity
+            android:name=".ui.profile.ProfileActivity"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:exported="false"
+            android:screenOrientation="sensorLandscape"
+            android:theme="@style/Theme.TheMyth" />
+
+        <activity
+            android:name=".ui.ranking.RankingActivity"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:exported="false"
+            android:screenOrientation="sensorLandscape"
+            android:theme="@style/Theme.TheMyth" />
     </application>
 
 </manifest>

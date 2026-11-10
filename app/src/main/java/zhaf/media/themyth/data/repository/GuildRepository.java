@@ -17,6 +17,7 @@ import java.util.Map;
 
 import zhaf.media.themyth.R;
 import zhaf.media.themyth.core.FirebaseRefs;
+import zhaf.media.themyth.data.meta.MissionCatalog;
 import zhaf.media.themyth.data.social.GuildBoss;
 import zhaf.media.themyth.data.social.GuildBossLogic;
 import zhaf.media.themyth.data.social.GuildChatMessage;
@@ -626,6 +627,9 @@ public final class GuildRepository {
                                     return;
                                 }
                                 addMemberPoints(uid, gid, points);
+                                MetaRepository.addMissionProgress(uid,
+                                        MissionCatalog.DAILY_DONATE, 1,
+                                        System.currentTimeMillis());
                                 callback.onSuccess();
                             }
                         });

@@ -2,9 +2,9 @@
 
 **2D Anime Mitologi RPG · 3 VS 3 Idle Auto Battle · Android · Firebase**
 
-Versi dokumen: 1.3 (2026-11-10)
-Status kode: M0–M8 selesai (fondasi, auth, roster/formasi, battle engine + UI, progression, gacha + shop, arena async, sosial). `assembleDebug`, unit test, dan `lintDebug` **SUKSES**.
-Status dokumen: lengkap untuk fase desain; implementasi mengikuti roadmap di `05-TECHNICAL-ANDROID.md` (berikutnya M9 Event + Polish).
+Versi dokumen: 1.4 (2026-11-10)
+Status kode: M0–M9 selesai (fondasi, auth, roster/formasi, battle engine + UI, progression, gacha + shop, arena async, sosial, meta harian). `assembleDebug`, unit test, dan `lintDebug` **SUKSES**.
+Status dokumen: lengkap untuk fase desain; implementasi mengikuti roadmap di `05-TECHNICAL-ANDROID.md` (berikutnya M10 Event + Polish, lalu QA rilis).
 
 ---
 
@@ -112,8 +112,9 @@ Roadmap implementasi (lihat `05-TECHNICAL-ANDROID.md` §9):
 | M6 Gacha + Shop (pity, riwayat, batas beli harian) | Selesai — versi 4.5 |
 | M7 Arena Async (snapshot, matchmaking, rating, ranking) | Selesai — fase 1 tanpa Functions |
 | M8 Sosial (mail, teman, guild, chat, donasi, boss guild) | Selesai — fase 1 tanpa Functions |
-| M9 Event + Polish | Belum |
-| M10 QA + Rilis | Belum |
+| M9 Meta harian (login 7 hari, idle chest, misi harian/mingguan, profil + badge/title, ranking) | Selesai — fase 1 tanpa Functions |
+| M10 Event + Polish | Belum |
+| M11 QA + Rilis | Belum |
 
 Catatan M6:
 - Data pool ada di `app/src/main/assets/seed/gacha.json`, data shop di `seed/shop.json` (dibaca lokal, bukan dari RTDB — sesuai batasan tanpa Storage).
@@ -135,3 +136,13 @@ Catatan M8 (Sosial, fase 1 tanpa Cloud Functions):
 - Boss guild bertarung lewat `BattleActivity` (`EXTRA_GUILD_ID`): damage dihitung dari sisa HP boss pada simulasi, dibatasi 25% `hpMax`, satu serangan per anggota per hari, lalu reward coin guild/poin diklaim sekali per minggu.
 - Klaim (mail/teman/boss) memakai penanda di dalam transaksi `players/{uid}`; donasi dan serangan boss memakai transaksi terpisah dengan rollback.
 - Batas fase 1: rules hanya membatasi besar damage/frekuensi, bukan memvalidasi simulasi boss; join guild tertutup belum bisa dicegah penuh; presence dan notifikasi sosial menyusul di M9.
+
+Catatan M9 (Meta harian, fase 1 tanpa Cloud Functions):
+- Tiga layar baru: **Misi & Hadiah** (login 7 hari beruntun, idle chest, misi harian/mingguan), **Profil** (statistik, gelar, badge), dan **Ranking** (top 20 arena musim berjalan + posisi sendiri).
+- Login harian: siklus 7 hari, hadiah makin besar (coin/diamond/energy/tiket), putus sehari → kembali ke hari 1; klaim sekali per hari UTC lewat transaksi `meta/login`.
+- Idle chest: 5 coin/menit, 1 energy tiap 30 menit, minimal 10 menit, cap 8 jam + 6 menit/level (maks 24 jam); sisa detik dipertahankan saat klaim.
+- Misi harian: menang 3×, masuk Arena 1×, summon 1×, donasi guild 1×. Misi mingguan: menang 15×, menang Arena 5×, serang boss guild 3×. Progres ditulis sebagai efek samping aksi yang sudah tervalidasi (battle, arena, summon, donasi), bukan dari input bebas client.
+- Idempoten: penanda klaim `meta/claims/{periode}_{missionId}`, `meta/login/lastDay`, `meta/idle/at`, dan progres per periode (`meta/missions/d/{yyyy-MM-dd}`, `meta/missions/w/{weekKey}`) — periode baru otomatis mulai dari 0 tanpa job reset.
+- Profil menampilkan gelar/badge yang bisa diganti; daftar terkunci mengikuti statistik nyata (kemenangan arena, rating, level, roster mitos, serangan boss, guild).
+- Ranking memakai papan `rankings/{season}/arena` yang sudah ditulis arena; UI memuat top 20 dan membaca `rankings/{season}/arena/{uid}` untuk posisi sendiri. Di luar top 20, posisi pasti tidak bisa dihitung tanpa Functions, jadi UI menampilkan skor tanpa nomor.
+- Batas fase 1: progres misi dan reward tetap ditulis client dalam transaksi; validasi server penuh menyusul bersama migrasi Cloud Functions.

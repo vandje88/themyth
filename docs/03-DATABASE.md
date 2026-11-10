@@ -40,7 +40,8 @@ players/{uid}/
   profile, settings, currencies, roster, formation, inventory,
   equipment, skills, progress, missions, achievements, badges,
   titles, avatars, shopLimits, summons, charShards, idle, stats, guild, friends,
-  mailIndex, presence, flags
+  mailIndex, presence, flags,
+  meta (lastSeen, idle, login, missions, claims, bossAttacks, bestRating)
 battles/{battleId}/
 battleLogs/{uid}/{battleId}/
 arena/
@@ -618,6 +619,35 @@ Presence (`presence/{uid}`) belum diimplementasikan di fase ini; direncanakan be
 - Reset harian pukul **04:00 waktu lokal perangkat**; jika `resetAt` sudah lewat, transaksi mengembalikan `count` ke 0 dan menulis `resetAt` berikutnya.
 - Batas beli (`dailyLimit`), harga, dan isi paket berasal dari `assets/seed/shop.json`, bukan dari RTDB, sehingga server tidak bisa memvalidasi harga tanpa Functions. Untuk produksi, salin `shop.json` ke `static/shops/` dan baca dari sana.
 
+### 9.3 Meta harian (login, idle, misi, profil)
+Seluruh data meta pemain berada di `players/{uid}/meta` agar tidak menambah pembacaan di luar cabang pemain sendiri:
+
+```json
+"players/Xk29sd.../meta": {
+  "lastSeen": 1731300000000,
+  "bestRating": 1245,
+  "bossAttacks": 7,
+  "idle": { "at": 1731296400000, "lastClaim": 1731290000000 },
+  "login": { "lastDay": "2026-11-10", "streak": 3, "lastClaimAt": 1731297600000 },
+  "missions": {
+    "d": { "2026-11-10": { "daily_win": 2, "daily_arena": 1 } },
+    "w": { "w320192": { "weekly_win": 6, "weekly_arena_win": 2, "weekly_boss": 1 } }
+  },
+  "claims": {
+    "2026-11-10_daily_arena": true,
+    "w320192_weekly_boss": true
+  }
+}
+```
+
+- Periode misi memakai kunci UTC dari `SocialDay`/`MetaClock`: harian `yyyy-MM-dd`, mingguan `w<epochHariSenin/86400000>`. Tidak ada job reset; periode baru otomatis terbaca sebagai progres 0.
+- Progres misi ditulis maksimal sebesar target (0..target) dan hanya setelah aksi yang sah berhasil: kemenangan battle (`daily_win`/`weekly_win`), settlement arena (`daily_arena`, `weekly_arena_win`), summon sukses (`daily_summon`), donasi guild sukses (`daily_donate`), serangan boss diterima (`weekly_boss`).
+- Klaim memakai penanda `claims/{periode}_{missionId}`; karena penanda dan penambahan reward berada dalam satu transaksi `players/{uid}`, klik ganda tidak bisa menambah reward dua kali.
+- `login/lastDay` + `login/streak` menyimpan streak 7 hari; klaim hanya boleh sekali per hari UTC.
+- `idle/at` adalah titik awal akumulasi idle. Klaim memajukan `at` dan mempertahankan sisa detik; `idle/lastClaim` hanya untuk ditampilkan.
+- `bestRating` dan `bossAttacks` adalah penghitung untuk syarat badge/gelar; `bestRating` hanya naik, `bossAttacks` hanya bertambah pada serangan boss yang diterima.
+- Profil menyimpan `profile/titleId` dan `profile/badgeId` (string ≤40). Daftar gelar/badge beserta syaratnya dibundel di APK (`TitleCatalog`, `BadgeCatalog`), bukan di RTDB.
+
 ---
 
 ## 10. IDEMPOTENCY
@@ -643,6 +673,10 @@ Penanda idempoten yang dipakai fitur sosial (tanpa `requests`, karena RTDB tidak
 | Donasi guild | `players/{uid}/guild/donations/{day,count}` | Dibatasi 3×/hari |
 | Serangan boss | `guilds/{gid}/boss/attacks/{uid}/{day}` | Ditolak "sudah menyerang hari ini" |
 | Klaim hadiah boss | `members/{uid}/bossClaims/{weekKey}` + `players/{uid}/guild/bossClaims/{weekKey}` | Coin/poin tidak ditambah dua kali |
+| Klaim login harian | `players/{uid}/meta/login/lastDay` | Ditolak jika hari UTC sama |
+| Klaim idle chest | `players/{uid}/meta/idle/at` | `at` dimajukan; sisa detik dipertahankan |
+| Klaim misi | `players/{uid}/meta/claims/{periode}_{missionId}` | Reward tidak ditambah dua kali |
+| Progres misi | `players/{uid}/meta/missions/{d|w}/{periode}/{missionId}` | Dijepit 0..target; periode baru mulai dari 0 |
 | Seed mailbox | `players/{uid}/mailFlags/mailSeed_v1` | Mail sambutan tidak dibuat ulang |
 
 ---
@@ -679,7 +713,35 @@ Penanda idempoten yang dipakai fitur sosial (tanpa `requests`, karena RTDB tidak
           "wins": { ".validate": "newData.isNumber() && newData.val() >= 0" },
           "losses": { ".validate": "newData.isNumber() && newData.val() >= 0" },
           "guildId": { ".validate": "newData.isString() || newData.val() === null" },
+          "titleId": { ".validate": "newData.isString() && newData.val().length <= 40" },
+          "badgeId": { ".validate": "newData.isString() && newData.val().length <= 40" },
           "lastOnline": { ".validate": "newData.isNumber()" },
+          "$other": { ".validate": true }
+        },
+
+        "meta": {
+          "lastSeen": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+          "bestRating": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 5000" },
+          "bossAttacks": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+          "idle": {
+            "at": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+            "lastClaim": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+            "$other": { ".validate": true }
+          },
+          "login": {
+            "lastDay": { ".validate": "newData.isString() && newData.val().length <= 10" },
+            "streak": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 7" },
+            "lastClaimAt": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+            "$other": { ".validate": true }
+          },
+          "missions": {
+            "d": { "$day": { "$missionId": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000" } } },
+            "w": { "$week": { "$missionId": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000" } } },
+            "$other": { ".validate": true }
+          },
+          "claims": {
+            "$key": { ".validate": "newData.val() === true" }
+          },
           "$other": { ".validate": true }
         },
 
@@ -1172,6 +1234,8 @@ Estimasi ukuran satu pemain aktif: ± 18–30 KB (dengan 20 karakter + 50 equipm
 | Spam chat | Bisa batasi panjang | Rate limit butuh Functions |
 | Damage boss guild palsu | Dibatasi ≤ 25% `hpMax` dan 1×/hari per UID | Butuh simulasi ulang di server |
 | Gabung guild tertutup tanpa izin | Tidak bisa dicegah penuh (rules hanya cek `players/{uid}/guild`) | Butuh Functions/validator |
+| Progres misi ditulis client | Dibatasi 0..target dan hanya naik | Tidak tahu apakah aksi benar-benar terjadi |
+| Klaim login/idle/misi | Idempoten per periode | Waktu klaim tetap dari client |
 
 **Fase 1 (sekarang, Spark):** rules + idempotency + audit plausibility (client melaporkan aktivitas; admin memantau anomali).
 **Fase 2 (wajib sebelum ranking berhadiah nyata):** Cloud Functions (Blaze, masih ada kuota gratis) untuk:

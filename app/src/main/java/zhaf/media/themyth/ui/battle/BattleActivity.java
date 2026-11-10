@@ -34,12 +34,14 @@ import zhaf.media.themyth.battle.engine.BattleInput;
 import zhaf.media.themyth.battle.engine.BattleResult;
 import zhaf.media.themyth.core.UiErrors;
 import zhaf.media.themyth.data.arena.ArenaBattle;
+import zhaf.media.themyth.data.meta.MissionCatalog;
 import zhaf.media.themyth.data.model.EquipmentInstance;
 import zhaf.media.themyth.data.model.FormationState;
 import zhaf.media.themyth.data.model.PlayerState;
 import zhaf.media.themyth.data.model.RosterChar;
 import zhaf.media.themyth.data.repository.ArenaRepository;
 import zhaf.media.themyth.data.repository.GuildRepository;
+import zhaf.media.themyth.data.repository.MetaRepository;
 import zhaf.media.themyth.data.repository.ProgressionRepository;
 import zhaf.media.themyth.data.repository.RosterRepository;
 import zhaf.media.themyth.data.social.GuildBoss;
@@ -410,6 +412,9 @@ public class BattleActivity extends AppCompatActivity implements BattleFieldView
                         guildAttackDone = true;
                         guildDamage = damage;
                         started = true;
+                        MetaRepository.addMissionProgress(uid, MissionCatalog.WEEKLY_BOSS, 1,
+                                System.currentTimeMillis());
+                        MetaRepository.recordBossAttack(uid);
                         binding.overlayError.setVisibility(View.GONE);
                         binding.overlayLoading.setVisibility(View.GONE);
                         binding.tvBattleState.setText(R.string.battle_state_running);
@@ -479,6 +484,11 @@ public class BattleActivity extends AppCompatActivity implements BattleFieldView
         simulating = false;
         started = true;
         currentResult = result;
+        if (result.playerWin() && !result.draw()) {
+            long now = System.currentTimeMillis();
+            MetaRepository.addMissionProgress(uid, MissionCatalog.DAILY_WIN, 1, now);
+            MetaRepository.addMissionProgress(uid, MissionCatalog.WEEKLY_WIN, 1, now);
+        }
         detachObservers();
         binding.overlayEmpty.setVisibility(View.GONE);
         binding.overlayError.setVisibility(View.GONE);
@@ -574,6 +584,7 @@ public class BattleActivity extends AppCompatActivity implements BattleFieldView
                         arenaSettling = false;
                         arenaSettlement = settlement;
                         started = true;
+                        recordArenaMissions(result, settlement.rating);
                         binding.overlayError.setVisibility(View.GONE);
                         binding.overlayLoading.setVisibility(View.GONE);
                         binding.tvBattleState.setText(R.string.battle_state_running);
@@ -593,6 +604,17 @@ public class BattleActivity extends AppCompatActivity implements BattleFieldView
                         binding.tvBattleState.setText(R.string.battle_error);
                     }
                 });
+    }
+
+    private void recordArenaMissions(BattleResult result, int rating) {
+        long now = System.currentTimeMillis();
+        MetaRepository.addMissionProgress(uid, MissionCatalog.DAILY_ARENA, 1, now);
+        MetaRepository.recordRating(uid, rating);
+        if (result.playerWin() && !result.draw()) {
+            MetaRepository.addMissionProgress(uid, MissionCatalog.DAILY_WIN, 1, now);
+            MetaRepository.addMissionProgress(uid, MissionCatalog.WEEKLY_WIN, 1, now);
+            MetaRepository.addMissionProgress(uid, MissionCatalog.WEEKLY_ARENA_WIN, 1, now);
+        }
     }
 
     @Override

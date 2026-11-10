@@ -74,6 +74,9 @@ app/src/main/
 │   │   │                               // FriendRequest, GiftEntry, DirectoryEntry,
 │   │   │                               // GuildInfo, GuildMember, GuildChatMessage,
 │   │   │                               // GuildBoss, GuildSummary)
+│   │   ├── meta/                       // MetaClock, DailyLoginLogic, IdleRewardLogic,
+│   │   │                               // MissionCatalog/MissionDef/MissionLogic,
+│   │   │                               // BadgeCatalog, TitleCatalog, PlayerMeta, PlayerStats
 │   │   ├── model/                      // Player, RosterChar, EquipmentInstance,
 │   │   │                               // ItemStack, Formation, BattleResult, Reward
 │   │   ├── staticdata/                 // CharacterTemplate, SkillDef, ItemDef,
@@ -88,6 +91,7 @@ app/src/main/
 │   │       ├── GuildRepository.java    // guild, chat, donasi, boss
 │   │       ├── SocialRepository.java   // directory, teman, hadiah
 │   │       ├── MailRepository.java     // seed, klaim, cleanup
+│   │       ├── MetaRepository.java     // presence, login, idle, misi, gelar/badge
 │   │       └── StaticRepository.java   // cache static/ ke lokal
 │   │
 │   ├── battle/
@@ -129,17 +133,17 @@ app/src/main/
 │       ├── character/ CharacterListFragment, CharacterDetailActivity,
 │       │              EquipmentFragment, SkillFragment, AwakeningFragment
 │       ├── formation/ FormationFragment
-│       ├── battle/    BattleActivity, BattleResultActivity, ReplayActivity
-│       ├── inventory/ InventoryFragment, ItemDetailDialog
-│       ├── summon/    SummonFragment, SummonResultDialog, SummonHistoryFragment
-│       ├── shop/      ShopFragment
-│       ├── quest/     QuestFragment
+│       ├── battle/    BattleActivity
+│       ├── inventory/ InventoryActivity
+│       ├── summon/    SummonActivity
+│       ├── shop/      ShopActivity
+│       ├── missions/  MissionsActivity (login, idle chest, misi harian/mingguan)
 │       ├── arena/     ArenaActivity (profil, matchmaking, leaderboard)
-│       ├── ranking/   RankingFragment
+│       ├── ranking/   RankingActivity (top 20 + posisi sendiri)
 │       ├── guild/     GuildActivity (info, anggota, chat, donasi, boss + launch battle)
 │       ├── friends/   FriendsActivity (cari UID, request, hadiah)
-│       ├── mail/      MailActivity + MailAdapter
-│       ├── profile/   ProfileFragment, TitleBadgeFragment
+│       ├── mail/      MailActivity
+│       ├── profile/   ProfileActivity (statistik, gelar, badge)
 │       └── settings/  SettingsFragment
 │
 ├── assets/
@@ -264,6 +268,7 @@ Saat offline:
 - Repository: klaim ganda tidak menambah reward.
 - Arena: rating ELO, tiket/regen, pemilihan lawan, penjaga plausibility hasil.
 - Sosial (`SocialLogicTest`, 13 test): TTL mail, batas teman 50, hadiah 1×/hari, donasi 3×/hari, damage boss ≤25%, batas minggu/hari, normalisasi nama/tag guild.
+- Meta harian (`MetaLogicTest`, 12 test): batas klaim login per hari UTC, transisi streak 7→1 dan reset setelah bolong, tabel reward, cap idle per level, ambang 10 menit, sisa detik saat klaim, penjepitan progres misi, dan periode harian/mingguan.
 
 ### 8.2 UI test
 - Login guest → home.
@@ -289,14 +294,15 @@ Low-end (RAM 2 GB, Android 7), mid (Android 11), high (Android 14), tablet 16:10
 | **M6 Gacha + Shop** | Pool, pity, hasil, riwayat, shop, batas beli | 5 | Sedang (RNG & audit) |
 | **M7 Arena Async** | Snapshot, matchmaking, battle, rating, ranking | 6 | Tinggi (race) |
 | **M8 Sosial** | Guild, chat, boss, friend, mail | 7 | Sedang |
-| **M9 Event + Polish** | Event, mission, notifikasi, audio, animasi, loading/empty/error | 6 | Sedang |
-| **M10 QA + Rilis** | Bugfix, performa, anti-cheat, rules, Play Console | 6 | Sedang |
+| **M9 Meta Harian** | Login 7 hari, idle chest, misi harian/mingguan, profil + badge/title, ranking | 6 | Sedang |
+| **M10 Event + Polish** | Event, notifikasi, audio, animasi, loading/empty/error | 6 | Sedang |
+| **M11 QA + Rilis** | Bugfix, performa, anti-cheat, rules, Play Console | 6 | Sedang |
 | **Total MVP** | | **± 63 hari kerja** | |
 
 Dengan 1 developer penuh waktu: **± 3 bulan** untuk MVP layak rilis; **5–6 bulan** untuk versi dengan guild/event/polish.
 Part-time (4 jam/hari): kalikan ± 2 → 6–8 bulan.
 
-> **Status 2026-11-10:** M0–M8 sudah diimplementasikan dan lolos `assembleDebug`, seluruh unit test (termasuk `SocialLogicTest`), dan `lintDebug` (0 error). M7 berjalan sebagai fase 1 tanpa Cloud Functions: snapshot + query rating + settlement client dengan penjaga plausibility (lihat `04-BACKEND-API.md` §4.1). M8 menambahkan mailbox, teman + hadiah harian, guild (buat/gabung/keluar, anggota, chat, donasi 3×/hari), dan boss guild mingguan yang bertarung lewat `BattleActivity`. Berikutnya M9 Event + Polish.
+> **Status 2026-11-10:** M0–M9 sudah diimplementasikan dan lolos `assembleDebug`, seluruh unit test (termasuk `SocialLogicTest` dan `MetaLogicTest`), dan `lintDebug` (0 error). M7 berjalan sebagai fase 1 tanpa Cloud Functions: snapshot + query rating + settlement client dengan penjaga plausibility (lihat `04-BACKEND-API.md` §4.1). M8 menambahkan mailbox, teman + hadiah harian, guild (buat/gabung/keluar, anggota, chat, donasi 3×/hari), dan boss guild mingguan yang bertarung lewat `BattleActivity`. M9 menambahkan login 7 hari, idle chest, misi harian/mingguan dengan hook di battle/arena/summon/donasi, layar Profil dengan gelar/badge, dan layar Ranking top 20. Berikutnya M10 Event + Polish.
 
 **Jalur cepat (vertical slice 3 minggu):** M0 + M1 + M2 + M3 + M4 versi sederhana (kotak warna, tanpa sprite final) → bisa dimainkan end-to-end lebih dulu, lalu ganti aset.
 

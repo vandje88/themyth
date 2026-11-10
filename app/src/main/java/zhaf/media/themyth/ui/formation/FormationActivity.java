@@ -25,11 +25,16 @@ import java.util.Map;
 import zhaf.media.themyth.R;
 import zhaf.media.themyth.core.Texts;
 import zhaf.media.themyth.core.UiErrors;
+import zhaf.media.themyth.data.model.EquipmentInstance;
 import zhaf.media.themyth.data.model.FormationState;
+import zhaf.media.themyth.data.model.PlayerState;
 import zhaf.media.themyth.data.model.RosterChar;
+import zhaf.media.themyth.data.progression.Progression;
+import zhaf.media.themyth.data.repository.ProgressionRepository;
 import zhaf.media.themyth.data.repository.RosterRepository;
 import zhaf.media.themyth.data.staticdata.CharacterCatalog;
 import zhaf.media.themyth.data.staticdata.CharacterTemplate;
+import zhaf.media.themyth.data.staticdata.EquipmentCatalog;
 import zhaf.media.themyth.data.staticdata.GameConstants;
 import zhaf.media.themyth.databinding.ActivityFormationBinding;
 import zhaf.media.themyth.databinding.ViewFormationSlotBinding;
@@ -41,14 +46,17 @@ public class FormationActivity extends AppCompatActivity {
 
     private ActivityFormationBinding binding;
     private CharacterCatalog catalog;
+    private EquipmentCatalog equipCatalog;
+    private ProgressionRepository progressionRepository;
     private CharacterCardAdapter adapter;
     private ViewFormationSlotBinding[] slotBindings;
 
-    private RosterRepository.Handle rosterHandle;
     private RosterRepository.Handle formationHandle;
+    private ProgressionRepository.Handle rosterHandle;
     private String uid;
 
     private final Map<String, RosterChar> ownedById = new HashMap<>();
+    private final Map<String, EquipmentInstance> equipmentById = new HashMap<>();
     private final String[] slots = {"", "", ""};
     private String strategy = FormationState.STRATEGY_BALANCED;
     private int activeSlot;
@@ -73,6 +81,8 @@ public class FormationActivity extends AppCompatActivity {
         }
         uid = user.getUid();
         catalog = CharacterCatalog.get(this);
+        equipCatalog = EquipmentCatalog.get(this);
+        progressionRepository = new ProgressionRepository(this);
         adapter = new CharacterCardAdapter(this::assignToActiveSlot);
         slotBindings = new ViewFormationSlotBinding[]{binding.slot0, binding.slot1, binding.slot2};
 
@@ -185,34 +195,36 @@ public class FormationActivity extends AppCompatActivity {
         }
         rosterLoading = true;
         renderPickerStates();
-        rosterHandle = RosterRepository.observeRoster(uid, new RosterRepository.RosterCallback() {
-            @Override
-            public void onData(List<RosterChar> data) {
-                rosterLoading = false;
-                rosterFailed = false;
-                ownedById.clear();
-                for (RosterChar owned : data) {
-                    ownedById.put(owned.charId, owned);
-                }
-                renderPicker();
-                renderSlots();
-            }
+        rosterHandle = progressionRepository.observe(uid,
+                new ProgressionRepository.StateCallback() {
+                    @Override
+                    public void onData(PlayerState data) {
+                        rosterLoading = false;
+                        rosterFailed = false;
+                        ownedById.clear();
+                        ownedById.putAll(data.roster);
+                        equipmentById.clear();
+                        equipmentById.putAll(data.equipment);
+                        renderPicker();
+                        renderSlots();
+                    }
 
-            @Override
-            public void onError(DatabaseError error) {
-                rosterLoading = false;
-                rosterFailed = true;
-                if (ownedById.isEmpty()) {
-                    binding.tvPickerError.setText(UiErrors.database(FormationActivity.this, error));
-                    renderPickerStates();
-                } else {
-                    Snackbar.make(binding.getRoot(),
-                            UiErrors.database(FormationActivity.this, error),
-                            Snackbar.LENGTH_LONG).show();
-                    renderPickerStates();
-                }
-            }
-        });
+                    @Override
+                    public void onError(DatabaseError error) {
+                        rosterLoading = false;
+                        rosterFailed = true;
+                        if (ownedById.isEmpty()) {
+                            binding.tvPickerError.setText(
+                                    UiErrors.database(FormationActivity.this, error));
+                            renderPickerStates();
+                        } else {
+                            Snackbar.make(binding.getRoot(),
+                                    UiErrors.database(FormationActivity.this, error),
+                                    Snackbar.LENGTH_LONG).show();
+                            renderPickerStates();
+                        }
+                    }
+                });
     }
 
     private void detachRoster() {
@@ -317,7 +329,8 @@ public class FormationActivity extends AppCompatActivity {
             RosterChar owned = ownedById.get(template.id);
             int level = owned == null ? 1 : owned.level;
             int stars = owned == null ? 1 : owned.stars;
-            long charCp = template.statsAt(level, stars).cp;
+            long charCp = Progression.statsOf(template, owned,
+                    equipmentById, equipCatalog).cp;
             sum += charCp;
 
             slot.vSlotPortrait.setCharacter(template.sprite, Texts.initial(template.name));

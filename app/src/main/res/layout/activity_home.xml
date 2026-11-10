@@ -353,6 +353,14 @@
                         android:layout_marginTop="12dp"
                         android:text="@string/home_arena" />
 
+                    <androidx.appcompat.widget.AppCompatButton
+                        android:id="@+id/btnInventory"
+                        style="@style/Widget.TheMyth.Button.Secondary"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:text="@string/home_inventory" />
+
                     <TextView
                         android:id="@+id/tvFooterVersion"
                         android:layout_width="wrap_content"

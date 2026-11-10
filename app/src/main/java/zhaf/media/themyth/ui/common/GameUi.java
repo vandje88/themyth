@@ -127,6 +127,73 @@ public final class GameUi {
     }
 
     @StringRes
+    public static int equipSlotLabel(String slot) {
+        if (slot == null) {
+            return R.string.equip_slot_weapon;
+        }
+        switch (slot) {
+            case "ARMOR":
+                return R.string.equip_slot_armor;
+            case "HELMET":
+                return R.string.equip_slot_helmet;
+            case "GLOVES":
+                return R.string.equip_slot_gloves;
+            case "BOOTS":
+                return R.string.equip_slot_boots;
+            case "ACCESSORY":
+                return R.string.equip_slot_accessory;
+            default:
+                return R.string.equip_slot_weapon;
+        }
+    }
+
+    @StringRes
+    public static int statLabel(String key) {
+        if (key == null) {
+            return R.string.stat_hp;
+        }
+        switch (key) {
+            case "atk":
+                return R.string.stat_atk;
+            case "def":
+                return R.string.stat_def;
+            case "spd":
+                return R.string.stat_spd;
+            case "critRate":
+                return R.string.stat_crit;
+            case "critDmg":
+                return R.string.stat_crit_dmg;
+            case "acc":
+                return R.string.stat_acc;
+            case "eva":
+                return R.string.stat_eva;
+            case "res":
+                return R.string.stat_res;
+            case "elemPower":
+                return R.string.stat_elem_power;
+            default:
+                return R.string.stat_hp;
+        }
+    }
+
+    @StringRes
+    public static int skillLabel(String key) {
+        if (key == null) {
+            return R.string.skill_basic;
+        }
+        switch (key) {
+            case "skill1":
+                return R.string.skill_one;
+            case "skill2":
+                return R.string.skill_two;
+            case "ultimate":
+                return R.string.skill_ultimate;
+            default:
+                return R.string.skill_basic;
+        }
+    }
+
+    @StringRes
     public static int strategyLabel(String strategy) {
         if (FormationState.STRATEGY_FOCUS_BACKLINE.equals(strategy)) {
             return R.string.strategy_focus_backline;

@@ -369,6 +369,7 @@ public final class BattleEngine {
 
         int targetDef = target.effectiveDef();
         long raw = (long) actor.effectiveAtk() * skill.power / 10000L;
+        raw = raw * skill.scaleBp / 10000L;
         long mitigationBp = (long) targetDef * 10000L
                 / (targetDef + 400L + 20L * actor.level);
         mitigationBp = Math.min(mitigationBp, 9500L);
@@ -523,7 +524,8 @@ public final class BattleEngine {
     private static void applySupport(BattleUnit actor, BattleUnit ally, Skill skill,
                                      List<BattleEvent> events, int tick, int actionIndex) {
         if (skill.heal && skill.healPower > 0) {
-            int amount = (int) ((long) actor.effectiveAtk() * skill.healPower / 10000L);
+            int amount = (int) ((long) actor.effectiveAtk() * skill.healPower / 10000L
+                    * skill.scaleBp / 10000L);
             int before = ally.hp;
             ally.hp = Math.min(ally.maxHp, ally.hp + amount);
             int actual = ally.hp - before;
@@ -531,7 +533,8 @@ public final class BattleEngine {
             events.add(BattleEvent.heal(tick, actor, ally, skill, actual));
         }
         if (skill.shieldPower > 0) {
-            int amount = (int) ((long) actor.effectiveAtk() * skill.shieldPower / 10000L);
+            int amount = (int) ((long) actor.effectiveAtk() * skill.shieldPower / 10000L
+                    * skill.scaleBp / 10000L);
             int cap = ally.maxHp * SHIELD_MAX_HP_BP / 10000;
             int before = ally.shield;
             ally.shield = Math.min(cap, ally.shield + amount);

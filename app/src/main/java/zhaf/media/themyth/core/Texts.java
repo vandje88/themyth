@@ -47,4 +47,15 @@ public final class Texts {
     public static String number(double value) {
         return number(Math.round(value));
     }
+
+    public static boolean isEnglish() {
+        return Locale.getDefault().getLanguage().startsWith("en");
+    }
+
+    public static String pick(String indonesian, String english) {
+        if (isEnglish() && english != null && !english.isEmpty()) {
+            return english;
+        }
+        return indonesian;
+    }
 }

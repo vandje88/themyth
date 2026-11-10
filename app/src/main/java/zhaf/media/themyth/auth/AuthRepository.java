@@ -12,6 +12,7 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.MutableData;
+import com.google.firebase.database.ServerValue;
 import com.google.firebase.database.Transaction;
 import com.google.firebase.database.ValueEventListener;
 
@@ -32,6 +33,7 @@ public final class AuthRepository {
     private static final String STARTER_ID = "gatotkaca";
     private static final String STARTER_MAGE_ID = "nyai_roro_kidul";
     private static final String FLAG_STARTER_V2 = "starterV2";
+    private static final String FLAG_PROGRESSION_V1 = "progressionV1";
 
     public interface Callback {
         void onSuccess(FirebaseUser user);
@@ -129,9 +131,11 @@ public final class AuthRepository {
 
     private void grantStarterHeroes(FirebaseUser user, DataSnapshot player,
                                     DatabaseReference playerRef, Callback callback) {
-        Boolean migrated = player.child("flags").child(FLAG_STARTER_V2)
-                .getValue(Boolean.class);
-        if (Boolean.TRUE.equals(migrated)) {
+        boolean migrationStarter = Boolean.TRUE.equals(
+                player.child("flags").child(FLAG_STARTER_V2).getValue(Boolean.class));
+        boolean migrationProgression = Boolean.TRUE.equals(
+                player.child("flags").child(FLAG_PROGRESSION_V1).getValue(Boolean.class));
+        if (migrationStarter && migrationProgression) {
             ensuredUid = user.getUid();
             callback.onSuccess(user);
             return;
@@ -139,6 +143,24 @@ public final class AuthRepository {
 
         long now = System.currentTimeMillis();
         Map<String, Object> update = new HashMap<>();
+        if (!migrationStarter) {
+            applyStarterMigration(player, update, now);
+        }
+        if (!migrationProgression) {
+            applyProgressionMigration(player, update);
+        }
+
+        playerRef.updateChildren(update).addOnCompleteListener(task -> {
+            ensuredUid = user.getUid();
+            if (!task.isSuccessful()) {
+                Log.w(TAG, "Starter migration failed", task.getException());
+            }
+            callback.onSuccess(user);
+        });
+    }
+
+    private void applyStarterMigration(DataSnapshot player, Map<String, Object> update,
+                                       long now) {
         if (!player.child("roster").child(STARTER_ID).exists()) {
             update.put("roster/" + STARTER_ID, starterEntry(STARTER_ID, now));
         }
@@ -171,14 +193,34 @@ public final class AuthRepository {
         }
 
         update.put("flags/" + FLAG_STARTER_V2, true);
+    }
 
-        playerRef.updateChildren(update).addOnCompleteListener(task -> {
-            ensuredUid = user.getUid();
-            if (!task.isSuccessful()) {
-                Log.w(TAG, "Starter hero migration failed", task.getException());
-            }
-            callback.onSuccess(user);
-        });
+    private void applyProgressionMigration(DataSnapshot player, Map<String, Object> update) {
+        grantItem(player, update, "expscroll_s", 10);
+        grantItem(player, update, "expscroll_m", 3);
+        grantItem(player, update, "scroll_skill", 6);
+        grantItem(player, update, "stone_enhance", 15);
+        grantItem(player, update, "stone_fire", 5);
+        grantItem(player, update, "stone_water", 5);
+        grantEquipment(player, update, "eqinst_starter_blade", "eq_iron_blade");
+        grantEquipment(player, update, "eqinst_starter_plate", "eq_guardian_plate");
+        grantEquipment(player, update, "eqinst_starter_charm", "eq_lunar_charm");
+        update.put("currencies/coin", ServerValue.increment(4000));
+        update.put("flags/" + FLAG_PROGRESSION_V1, true);
+    }
+
+    private void grantItem(DataSnapshot player, Map<String, Object> update,
+                           String itemId, int qty) {
+        if (!player.child("inventory").child(itemId).exists()) {
+            update.put("inventory/" + itemId, itemEntry(qty));
+        }
+    }
+
+    private void grantEquipment(DataSnapshot player, Map<String, Object> update,
+                                String instanceId, String templateId) {
+        if (!player.child("equipment").child(instanceId).exists()) {
+            update.put("equipment/" + instanceId, equipmentEntry(templateId));
+        }
     }
 
     private Map<String, Object> starterEntry(String charId, long now) {
@@ -198,6 +240,22 @@ public final class AuthRepository {
         entry.put("skillLevels", skillLevels);
         entry.put("locked", false);
         entry.put("obtainedAt", now);
+        return entry;
+    }
+
+    private Map<String, Object> itemEntry(int qty) {
+        Map<String, Object> entry = new HashMap<>();
+        entry.put("qty", qty);
+        entry.put("locked", false);
+        return entry;
+    }
+
+    private Map<String, Object> equipmentEntry(String templateId) {
+        Map<String, Object> entry = new HashMap<>();
+        entry.put("templateId", templateId);
+        entry.put("level", 0);
+        entry.put("locked", false);
+        entry.put("equippedBy", "");
         return entry;
     }
 
@@ -285,7 +343,7 @@ public final class AuthRepository {
         settings.put("strategy", "BALANCED");
 
         Map<String, Object> currencies = new HashMap<>();
-        currencies.put("coin", 1000);
+        currencies.put("coin", 5000);
         currencies.put("diamond", 300);
         currencies.put("energy", 120);
         currencies.put("ticketSummon", 1);
@@ -298,6 +356,19 @@ public final class AuthRepository {
         Map<String, Object> roster = new HashMap<>();
         roster.put(STARTER_ID, starterEntry(STARTER_ID, now));
         roster.put(STARTER_MAGE_ID, starterEntry(STARTER_MAGE_ID, now));
+
+        Map<String, Object> inventory = new HashMap<>();
+        inventory.put("expscroll_s", itemEntry(10));
+        inventory.put("expscroll_m", itemEntry(3));
+        inventory.put("scroll_skill", itemEntry(6));
+        inventory.put("stone_enhance", itemEntry(15));
+        inventory.put("stone_fire", itemEntry(5));
+        inventory.put("stone_water", itemEntry(5));
+
+        Map<String, Object> equipment = new HashMap<>();
+        equipment.put("eqinst_starter_blade", equipmentEntry("eq_iron_blade"));
+        equipment.put("eqinst_starter_plate", equipmentEntry("eq_guardian_plate"));
+        equipment.put("eqinst_starter_charm", equipmentEntry("eq_lunar_charm"));
 
         Map<String, Object> formation = new HashMap<>();
         formation.put("slots", Arrays.asList(STARTER_ID, "", STARTER_MAGE_ID));
@@ -319,6 +390,7 @@ public final class AuthRepository {
         flags.put("tutorialDone", false);
         flags.put("starterClaimed", false);
         flags.put(FLAG_STARTER_V2, true);
+        flags.put(FLAG_PROGRESSION_V1, true);
         flags.put("banned", false);
 
         Map<String, Object> player = new HashMap<>();
@@ -327,6 +399,8 @@ public final class AuthRepository {
         player.put("currencies", currencies);
         player.put("energyUpdatedAt", now);
         player.put("roster", roster);
+        player.put("inventory", inventory);
+        player.put("equipment", equipment);
         player.put("formation", formation);
         player.put("progress", progress);
         player.put("idle", idle);

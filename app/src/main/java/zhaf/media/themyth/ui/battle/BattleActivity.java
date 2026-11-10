@@ -19,8 +19,10 @@ import com.google.firebase.database.DatabaseError;
 import java.text.NumberFormat;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -31,10 +33,14 @@ import zhaf.media.themyth.battle.engine.BattleEvent;
 import zhaf.media.themyth.battle.engine.BattleInput;
 import zhaf.media.themyth.battle.engine.BattleResult;
 import zhaf.media.themyth.core.UiErrors;
+import zhaf.media.themyth.data.model.EquipmentInstance;
 import zhaf.media.themyth.data.model.FormationState;
+import zhaf.media.themyth.data.model.PlayerState;
 import zhaf.media.themyth.data.model.RosterChar;
+import zhaf.media.themyth.data.repository.ProgressionRepository;
 import zhaf.media.themyth.data.repository.RosterRepository;
 import zhaf.media.themyth.data.staticdata.CharacterCatalog;
+import zhaf.media.themyth.data.staticdata.EquipmentCatalog;
 import zhaf.media.themyth.databinding.ActivityBattleBinding;
 import zhaf.media.themyth.ui.formation.FormationActivity;
 import zhaf.media.themyth.ui.login.LoginActivity;
@@ -48,12 +54,15 @@ public class BattleActivity extends AppCompatActivity implements BattleFieldView
     private final NumberFormat numberFormat = NumberFormat.getIntegerInstance();
     private final ArrayDeque<String> logLines = new ArrayDeque<>();
     private final List<RosterChar> roster = new ArrayList<>();
+    private final Map<String, EquipmentInstance> equipmentById = new HashMap<>();
 
     private ActivityBattleBinding binding;
     private CharacterCatalog catalog;
+    private EquipmentCatalog equipCatalog;
+    private ProgressionRepository progressionRepository;
     private String uid;
     private FormationState formation = FormationState.empty();
-    private RosterRepository.Handle rosterHandle;
+    private ProgressionRepository.Handle rosterHandle;
     private RosterRepository.Handle formationHandle;
     private BattleResult currentResult;
 
@@ -75,6 +84,8 @@ public class BattleActivity extends AppCompatActivity implements BattleFieldView
         }
         uid = user.getUid();
         catalog = CharacterCatalog.get(this);
+        equipCatalog = EquipmentCatalog.get(this);
+        progressionRepository = new ProgressionRepository(this);
 
         binding.battleField.setListener(this);
         binding.battleField.setSpeed(2f);
@@ -138,25 +149,28 @@ public class BattleActivity extends AppCompatActivity implements BattleFieldView
         if (uid == null || rosterHandle != null || formationHandle != null) {
             return;
         }
-        rosterHandle = RosterRepository.observeRoster(uid, new RosterRepository.RosterCallback() {
-            @Override
-            public void onData(List<RosterChar> data) {
-                if (started) {
-                    return;
-                }
-                roster.clear();
-                roster.addAll(data);
-                rosterLoaded = true;
-                maybeStart();
-            }
+        rosterHandle = progressionRepository.observe(uid,
+                new ProgressionRepository.StateCallback() {
+                    @Override
+                    public void onData(PlayerState data) {
+                        if (started) {
+                            return;
+                        }
+                        roster.clear();
+                        roster.addAll(data.roster.values());
+                        equipmentById.clear();
+                        equipmentById.putAll(data.equipment);
+                        rosterLoaded = true;
+                        maybeStart();
+                    }
 
-            @Override
-            public void onError(DatabaseError error) {
-                if (!started) {
-                    showLoadError(error);
-                }
-            }
-        });
+                    @Override
+                    public void onError(DatabaseError error) {
+                        if (!started) {
+                            showLoadError(error);
+                        }
+                    }
+                });
         formationHandle = RosterRepository.observeFormation(uid,
                 new RosterRepository.FormationCallback() {
                     @Override
@@ -193,8 +207,8 @@ public class BattleActivity extends AppCompatActivity implements BattleFieldView
         if (started || simulating || !rosterLoaded || !formationLoaded) {
             return;
         }
-        BattleInput input = BattleSetup.training(catalog, formation, roster,
-                System.nanoTime());
+        BattleInput input = BattleSetup.training(catalog, equipCatalog, formation, roster,
+                equipmentById, System.nanoTime());
         if (input == null) {
             showEmpty();
             return;

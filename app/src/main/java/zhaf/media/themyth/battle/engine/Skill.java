@@ -21,6 +21,7 @@ public final class Skill {
     public final Type type;
     public final Target target;
     public final int power;
+    public final int scaleBp;
     public final int cooldown;
     public final int energyGain;
     public final boolean heal;
@@ -39,6 +40,7 @@ public final class Skill {
         this.type = builder.type;
         this.target = builder.target;
         this.power = builder.power;
+        this.scaleBp = builder.scaleBp;
         this.cooldown = builder.cooldown;
         this.energyGain = builder.energyGain;
         this.heal = builder.heal;
@@ -63,6 +65,7 @@ public final class Skill {
         private final Type type;
         private Target target = Target.ENEMY_SINGLE;
         private int power;
+        private int scaleBp = 10000;
         private int cooldown;
         private int energyGain;
         private boolean heal;
@@ -88,6 +91,11 @@ public final class Skill {
 
         public Builder power(int power) {
             this.power = power;
+            return this;
+        }
+
+        public Builder scaleBp(int scaleBp) {
+            this.scaleBp = Math.max(1, scaleBp);
             return this;
         }
 

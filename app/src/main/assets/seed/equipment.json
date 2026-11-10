@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "equipment": [
+    {
+      "id": "eq_iron_blade",
+      "name": "Bilah Besi",
+      "nameEn": "Iron Blade",
+      "slot": "WEAPON",
+      "rarity": "rare",
+      "mainKey": "atk",
+      "mainValue": 120,
+      "sellPrice": 400
+    },
+    {
+      "id": "eq_flame_blade",
+      "name": "Bilah Api",
+      "nameEn": "Flame Blade",
+      "slot": "WEAPON",
+      "rarity": "epic",
+      "mainKey": "atk",
+      "mainValue": 180,
+      "sellPrice": 800
+    },
+    {
+      "id": "eq_guardian_plate",
+      "name": "Zirah Penjaga",
+      "nameEn": "Guardian Plate",
+      "slot": "ARMOR",
+      "rarity": "rare",
+      "mainKey": "hp",
+      "mainValue": 900,
+      "sellPrice": 400
+    },
+    {
+      "id": "eq_tide_robe",
+      "name": "Jubah Ombak",
+      "nameEn": "Tide Robe",
+      "slot": "ARMOR",
+      "rarity": "epic",
+      "mainKey": "def",
+      "mainValue": 120,
+      "sellPrice": 800
+    },
+    {
+      "id": "eq_swift_helm",
+      "name": "Helm Sigap",
+      "nameEn": "Swift Helm",
+      "slot": "HELMET",
+      "rarity": "rare",
+      "mainKey": "hp",
+      "mainValue": 600,
+      "sellPrice": 400
+    },
+    {
+      "id": "eq_gale_gloves",
+      "name": "Sarung Tangan Angin",
+      "nameEn": "Gale Gloves",
+      "slot": "GLOVES",
+      "rarity": "rare",
+      "mainKey": "atk",
+      "mainValue": 60,
+      "sellPrice": 400
+    },
+    {
+      "id": "eq_storm_boots",
+      "name": "Sepatu Badai",
+      "nameEn": "Storm Boots",
+      "slot": "BOOTS",
+      "rarity": "rare",
+      "mainKey": "spd",
+      "mainValue": 12,
+      "sellPrice": 400
+    },
+    {
+      "id": "eq_lunar_charm",
+      "name": "Jimat Bulan",
+      "nameEn": "Lunar Charm",
+      "slot": "ACCESSORY",
+      "rarity": "epic",
+      "mainKey": "elemPower",
+      "mainValue": 400,
+      "sellPrice": 800
+    }
+  ]
+}

@@ -55,6 +55,15 @@
             android:layout_height="1dp"
             android:layout_weight="1" />
 
+        <TextView
+            android:id="@+id/tvRosterCoin"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="12dp"
+            android:textColor="@color/gold"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
         <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/btnManageFormation"
             style="@style/Widget.TheMyth.Button.Secondary"
@@ -321,6 +330,56 @@
                         android:layout_marginTop="6dp"
                         android:textAppearance="@style/TextAppearance.TheMyth.Caption" />
 
+                    <ProgressBar
+                        android:id="@+id/progressExp"
+                        style="?android:attr/progressBarStyleHorizontal"
+                        android:layout_width="match_parent"
+                        android:layout_height="6dp"
+                        android:layout_marginTop="6dp"
+                        android:max="100"
+                        android:progress="0"
+                        android:progressBackgroundTint="@color/panel_elevated"
+                        android:progressTint="@color/cyan" />
+
+                    <TextView
+                        android:id="@+id/tvDetailExp"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="3dp"
+                        android:textAppearance="@style/TextAppearance.TheMyth.Caption" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:orientation="horizontal">
+
+                        <androidx.appcompat.widget.AppCompatButton
+                            android:id="@+id/btnLevelUp"
+                            style="@style/Widget.TheMyth.Button.Primary"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/roster_level_up" />
+
+                        <androidx.appcompat.widget.AppCompatButton
+                            android:id="@+id/btnUseExp"
+                            style="@style/Widget.TheMyth.Button.Secondary"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:layout_weight="1"
+                            android:text="@string/roster_use_exp" />
+                    </LinearLayout>
+
+                    <androidx.appcompat.widget.AppCompatButton
+                        android:id="@+id/btnBreakthrough"
+                        style="@style/Widget.TheMyth.Button.Secondary"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:text="@string/roster_breakthrough_button" />
+
                     <TextView
                         android:id="@+id/tvDetailProgress"
                         android:layout_width="match_parent"
@@ -370,14 +429,36 @@
                         android:textSize="11sp"
                         android:textStyle="bold" />
 
-                    <TextView
-                        android:id="@+id/tvDetailSkills"
+                    <LinearLayout
+                        android:id="@+id/skillsGrid"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="6dp"
-                        android:lineSpacingExtra="3dp"
-                        android:textAppearance="@style/TextAppearance.TheMyth.Caption"
-                        android:textColor="@color/text_primary" />
+                        android:orientation="vertical" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="@string/roster_skill_upgrade_hint"
+                        android:textAppearance="@style/TextAppearance.TheMyth.Caption" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:letterSpacing="0.1"
+                        android:text="@string/roster_detail_equipment"
+                        android:textColor="@color/cyan"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+
+                    <LinearLayout
+                        android:id="@+id/equipmentGrid"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:orientation="vertical" />
 
                     <androidx.appcompat.widget.AppCompatButton
                         android:id="@+id/btnDetailFormation"

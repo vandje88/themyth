@@ -37,6 +37,7 @@ import zhaf.media.themyth.data.staticdata.CharacterTemplate;
 import zhaf.media.themyth.databinding.ActivityHomeBinding;
 import zhaf.media.themyth.ui.battle.BattleActivity;
 import zhaf.media.themyth.ui.formation.FormationActivity;
+import zhaf.media.themyth.ui.inventory.InventoryActivity;
 import zhaf.media.themyth.ui.login.LoginActivity;
 import zhaf.media.themyth.ui.roster.RosterActivity;
 
@@ -96,6 +97,8 @@ public class HomeActivity extends AppCompatActivity {
                 v -> startActivity(new Intent(this, RosterActivity.class)));
         binding.btnFormation.setOnClickListener(
                 v -> startActivity(new Intent(this, FormationActivity.class)));
+        binding.btnInventory.setOnClickListener(
+                v -> startActivity(new Intent(this, InventoryActivity.class)));
     }
 
     @Override

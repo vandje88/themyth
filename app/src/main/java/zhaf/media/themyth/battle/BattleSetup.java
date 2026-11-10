@@ -8,11 +8,14 @@ import java.util.Map;
 import zhaf.media.themyth.battle.engine.BattleInput;
 import zhaf.media.themyth.battle.engine.BattleUnit;
 import zhaf.media.themyth.battle.engine.Strategy;
+import zhaf.media.themyth.data.model.EquipmentInstance;
 import zhaf.media.themyth.data.model.FormationState;
 import zhaf.media.themyth.data.model.RosterChar;
+import zhaf.media.themyth.data.progression.Progression;
 import zhaf.media.themyth.data.staticdata.CharacterCatalog;
 import zhaf.media.themyth.data.staticdata.CharacterStats;
 import zhaf.media.themyth.data.staticdata.CharacterTemplate;
+import zhaf.media.themyth.data.staticdata.EquipmentCatalog;
 import zhaf.media.themyth.data.staticdata.GameConstants;
 
 public final class BattleSetup {
@@ -24,8 +27,9 @@ public final class BattleSetup {
     private BattleSetup() {
     }
 
-    public static BattleInput training(CharacterCatalog catalog, FormationState formation,
-                                       List<RosterChar> roster, long seed) {
+    public static BattleInput training(CharacterCatalog catalog, EquipmentCatalog equipCatalog,
+                                       FormationState formation, List<RosterChar> roster,
+                                       Map<String, EquipmentInstance> equipment, long seed) {
         if (catalog == null || formation == null) {
             return null;
         }
@@ -50,12 +54,10 @@ public final class BattleSetup {
                 continue;
             }
             RosterChar state = owned.get(charId);
-            int level = state == null ? 1 : Math.max(1, state.level);
-            int stars = state == null ? 1 : Math.max(1, state.stars);
 
-            teamA.add(build(template, level, stars, 0, slot,
+            teamA.add(build(template, state, equipCatalog, equipment, 0, slot,
                     "A" + slot, template.name, 1.0));
-            teamB.add(build(template, level, stars, 1, slot,
+            teamB.add(build(template, state, equipCatalog, equipment, 1, slot,
                     "B" + slot, "Bayangan " + template.name, TRAINING_ENEMY_MULT));
         }
 
@@ -70,9 +72,12 @@ public final class BattleSetup {
                 BattleInput.DEFAULT_MAX_TICKS);
     }
 
-    private static BattleUnit build(CharacterTemplate template, int level, int stars,
+    private static BattleUnit build(CharacterTemplate template, RosterChar state,
+                                    EquipmentCatalog equipCatalog,
+                                    Map<String, EquipmentInstance> equipment,
                                     int team, int slot, String uid, String name, double mult) {
-        CharacterStats stats = template.statsAt(level, stars);
+        CharacterStats stats = Progression.statsOf(template, state, equipment, equipCatalog);
+        int level = state == null ? 1 : Math.max(1, state.level);
         BattleUnit unit = new BattleUnit(
                 uid, template.id, name, template.sprite, team, slot, level,
                 template.element, template.role,
@@ -87,7 +92,11 @@ public final class BattleSetup {
                 stats.res,
                 stats.elemPower
         );
-        SkillFactory.assign(unit);
+        SkillFactory.assign(unit,
+                state == null ? 1 : state.skillBasic,
+                state == null ? 1 : state.skillOne,
+                state == null ? 1 : state.skillTwo,
+                state == null ? 1 : state.skillUltimate);
         return unit;
     }
 

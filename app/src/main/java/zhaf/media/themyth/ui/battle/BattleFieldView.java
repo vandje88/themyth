@@ -51,6 +51,9 @@ public final class BattleFieldView extends View {
     private static final long BANNER_DURATION_MS = 1100L;
     private static final long STATUS_DURATION_MS = 5000L;
     private static final long RESULT_DELAY_MS = 1600L;
+    private static final long LUNGE_APPROACH_MAX_MS = 220L;
+    private static final long LUNGE_RETURN_MS = 180L;
+    private static final long ACTION_PADDING_MS = 120L;
 
     private static final SpriteAnimation[] PRELOAD = {
             SpriteAnimation.IDLE,
@@ -90,6 +93,7 @@ public final class BattleFieldView extends View {
     private int nextEvent;
     private long clockMs;
     private long lastFrameMs;
+    private long actionReadyAt;
     private long bannerUntil;
     private long playbackEndsAt;
     private String bannerText;
@@ -174,6 +178,7 @@ public final class BattleFieldView extends View {
         events = result == null ? new ArrayList<>() : result.events;
         nextEvent = 0;
         clockMs = 0L;
+        actionReadyAt = 0L;
         playbackEndsAt = 0L;
         bannerText = null;
         bannerUntil = 0L;
@@ -225,6 +230,7 @@ public final class BattleFieldView extends View {
         handler.removeCallbacks(frameTick);
         clockMs = 0L;
         nextEvent = 0;
+        actionReadyAt = 0L;
         playbackEndsAt = 0L;
         bannerText = null;
         bannerUntil = 0L;
@@ -286,6 +292,7 @@ public final class BattleFieldView extends View {
             state.baselineY = height * SLOT_Y[slot];
             state.height = height * SLOT_H[slot];
             state.barWidth = Math.min(width * 0.076f, state.height * 0.60f);
+            state.spriteWidth = state.height * 0.62f;
             state.name = TextUtils.ellipsize(state.rawName, namePaint,
                     state.barWidth * 1.5f, TextUtils.TruncateAt.END).toString();
         }
@@ -339,6 +346,9 @@ public final class BattleFieldView extends View {
             if (event.tick * 100L > limit) {
                 break;
             }
+            if (event.type == BattleEvent.Type.ACTION && clockMs < actionReadyAt) {
+                break;
+            }
             nextEvent++;
             applyEvent(event);
         }
@@ -351,7 +361,14 @@ public final class BattleFieldView extends View {
         switch (event.type) {
             case ACTION:
                 if (source != null) {
-                    source.play(skillAnimation(event.skillType), clockMs);
+                    SpriteAnimation animation = skillAnimation(event.skillType);
+                    long animationMs = animationMs(source, animation);
+                    source.play(animation, clockMs);
+                    if (target != null && target.player != source.player) {
+                        startLunge(source, target, animationMs);
+                    }
+                    actionReadyAt = clockMs + animationMs
+                            + LUNGE_RETURN_MS + ACTION_PADDING_MS;
                     bannerText = event.skillName;
                     bannerColor = skillColor(event.skillType);
                     bannerUntil = clockMs + BANNER_DURATION_MS;
@@ -418,6 +435,8 @@ public final class BattleFieldView extends View {
                     target.targetHp = 0;
                     target.shield = 0;
                     target.statuses.clear();
+                    target.lungeStart = -1L;
+                    target.lungeOffset = 0f;
                     target.play(SpriteAnimation.DEAD, clockMs);
                     addFloat(target, getContext().getString(R.string.battle_ko),
                             getContext().getColor(R.color.danger), true);
@@ -433,6 +452,27 @@ public final class BattleFieldView extends View {
         if (listener != null) {
             listener.onLog(event);
         }
+    }
+
+    private long animationMs(UnitState state, SpriteAnimation animation) {
+        Sheet sheet = sheets.get(sheetKey(state.sprite, animation));
+        int frames = sheet != null
+                ? Math.max(1, sheet.columns * sheet.rows)
+                : Math.max(1, animation.frames());
+        return frames * (long) animation.frameMs;
+    }
+
+    private void startLunge(UnitState source, UnitState target, long animationMs) {
+        float dx = target.centerX - source.centerX;
+        if (Math.abs(dx) < 1f) {
+            return;
+        }
+        float contact = (source.spriteWidth + target.spriteWidth) * 0.44f;
+        float distance = Math.abs(dx) - contact;
+        if (distance <= 0f) {
+            return;
+        }
+        source.startLunge(Math.signum(dx) * distance, clockMs, animationMs);
     }
 
     private void onBattleEnd(BattleEvent event) {
@@ -451,7 +491,8 @@ public final class BattleFieldView extends View {
 
     private void updateDisplays() {
         for (UnitState state : states) {
-            if (!state.animation.loop && !state.animation.holdLast) {
+            state.updateLunge(clockMs);
+            if (!state.animation.loop && !state.animation.holdLast && state.lungeStart < 0L) {
                 int frames = SpriteArt.frames(state.sprite, state.animation);
                 if (clockMs - state.animationStart >= (long) frames * state.animation.frameMs) {
                     state.animation = SpriteAnimation.IDLE;
@@ -521,20 +562,21 @@ public final class BattleFieldView extends View {
 
     private void drawUnit(Canvas canvas, UnitState state) {
         float headY = state.baselineY - state.height;
+        float drawX = state.centerX + state.lungeOffset;
         float shadowWidth = state.height * 0.34f;
         canvas.drawOval(new RectF(
-                state.centerX - shadowWidth,
+                drawX - shadowWidth,
                 state.baselineY - state.height * 0.035f,
-                state.centerX + shadowWidth,
+                drawX + shadowWidth,
                 state.baselineY + state.height * 0.035f), shadowPaint);
 
         int elementColor = elementColor(state.element);
         glowPaint.setColor(Color.argb(70, Color.red(elementColor),
                 Color.green(elementColor), Color.blue(elementColor)));
         canvas.drawOval(new RectF(
-                state.centerX - shadowWidth * 1.15f,
+                drawX - shadowWidth * 1.15f,
                 state.baselineY - state.height * 0.05f,
-                state.centerX + shadowWidth * 1.15f,
+                drawX + shadowWidth * 1.15f,
                 state.baselineY + state.height * 0.05f), glowPaint);
 
         Sheet sheet = sheets.get(sheetKey(state.sprite, state.animation));
@@ -552,15 +594,16 @@ public final class BattleFieldView extends View {
             float scale = state.height / cellHeight;
             float drawWidth = cellWidth * scale;
             float drawHeight = cellHeight * scale;
+            state.spriteWidth = drawWidth;
             dstRect.set(
-                    state.centerX - drawWidth / 2f,
+                    drawX - drawWidth / 2f,
                     state.baselineY - drawHeight,
-                    state.centerX + drawWidth / 2f,
+                    drawX + drawWidth / 2f,
                     state.baselineY);
 
             int save = canvas.save();
             if (!state.player) {
-                canvas.scale(-1f, 1f, state.centerX, 0f);
+                canvas.scale(-1f, 1f, drawX, 0f);
             }
             canvas.drawBitmap(sheet.bitmap, srcRect, dstRect, spritePaint);
             canvas.restoreToCount(save);
@@ -569,34 +612,35 @@ public final class BattleFieldView extends View {
                 spritePaint.setAlpha(150);
                 save = canvas.save();
                 if (!state.player) {
-                    canvas.scale(-1f, 1f, state.centerX, 0f);
+                    canvas.scale(-1f, 1f, drawX, 0f);
                 }
                 canvas.drawBitmap(sheet.bitmap, srcRect, dstRect, spritePaint);
                 canvas.restoreToCount(save);
                 spritePaint.setAlpha(255);
             }
         } else {
-            drawPlaceholder(canvas, state, headY);
+            state.spriteWidth = state.height * 0.62f;
+            drawPlaceholder(canvas, state, drawX, headY);
         }
 
-        drawBars(canvas, state, headY);
+        drawBars(canvas, state, headY, drawX);
     }
 
-    private void drawPlaceholder(Canvas canvas, UnitState state, float headY) {
+    private void drawPlaceholder(Canvas canvas, UnitState state, float drawX, float headY) {
         float radius = state.height * 0.16f;
         barPaint.setColor(getContext().getColor(R.color.panel_elevated));
-        canvas.drawCircle(state.centerX, state.baselineY - radius, radius, barPaint);
+        canvas.drawCircle(drawX, state.baselineY - radius, radius, barPaint);
         textPaint.setTextSize(radius * 1.1f);
         textPaint.setColor(getContext().getColor(R.color.text_primary));
         Paint.FontMetrics metrics = textPaint.getFontMetrics();
         float baseline = state.baselineY - radius
                 - (metrics.ascent + metrics.descent) / 2f;
-        canvas.drawText(state.initial, state.centerX, baseline, textPaint);
+        canvas.drawText(state.initial, drawX, baseline, textPaint);
     }
 
-    private void drawBars(Canvas canvas, UnitState state, float headY) {
+    private void drawBars(Canvas canvas, UnitState state, float headY, float drawX) {
         float width = state.barWidth;
-        float left = state.centerX - width / 2f;
+        float left = drawX - width / 2f;
         float hpTop = headY - 12f * density;
         float hpHeight = 5f * density;
         float radius = hpHeight / 2f;
@@ -637,7 +681,7 @@ public final class BattleFieldView extends View {
                     shieldTop + 2f * density), density, density, barPaint);
         }
 
-        canvas.drawText(state.name, state.centerX, hpTop - 5f * density, namePaint);
+        canvas.drawText(state.name, drawX, hpTop - 5f * density, namePaint);
 
         int dotIndex = 0;
         for (Map.Entry<StatusType, Long> entry : state.statuses.entrySet()) {
@@ -836,6 +880,12 @@ public final class BattleFieldView extends View {
         float baselineY;
         float height;
         float barWidth;
+        float spriteWidth;
+        float lungeOffset;
+        float lungeTo;
+        long lungeStart = -1L;
+        long lungeApproachMs;
+        long lungeReturnAt;
         float hp;
         int targetHp;
         int energy;
@@ -875,6 +925,38 @@ public final class BattleFieldView extends View {
             animationStart = now;
         }
 
+        void startLunge(float distance, long now, long animationMs) {
+            lungeTo = distance;
+            lungeStart = now;
+            lungeApproachMs = Math.max(1L, Math.min(LUNGE_APPROACH_MAX_MS, animationMs / 3L));
+            lungeReturnAt = now + Math.max(animationMs, lungeApproachMs);
+        }
+
+        void updateLunge(long now) {
+            if (lungeStart < 0L) {
+                lungeOffset = 0f;
+                return;
+            }
+            if (now < lungeStart + lungeApproachMs) {
+                float k = (now - lungeStart) / (float) lungeApproachMs;
+                float eased = 1f - (1f - k) * (1f - k) * (1f - k);
+                lungeOffset = lungeTo * eased;
+                return;
+            }
+            if (now < lungeReturnAt) {
+                lungeOffset = lungeTo;
+                return;
+            }
+            float k = (now - lungeReturnAt) / (float) LUNGE_RETURN_MS;
+            if (k >= 1f) {
+                lungeStart = -1L;
+                lungeOffset = 0f;
+                return;
+            }
+            float eased = k * k * (3f - 2f * k);
+            lungeOffset = lungeTo * (1f - eased);
+        }
+
         int frameIndex(long now, int columns, int rows) {
             int frames = Math.max(1, columns * rows);
             long elapsed = Math.max(0L, now - animationStart);
@@ -883,7 +965,7 @@ public final class BattleFieldView extends View {
                 return frame % frames;
             }
             if (frame >= frames) {
-                return animation.holdLast ? frames - 1 : 0;
+                return animation.holdLast || lungeStart >= 0L ? frames - 1 : 0;
             }
             return frame;
         }
@@ -899,6 +981,11 @@ public final class BattleFieldView extends View {
             statuses.clear();
             animation = SpriteAnimation.IDLE;
             animationStart = now;
+            lungeStart = -1L;
+            lungeOffset = 0f;
+            lungeTo = 0f;
+            lungeApproachMs = 0L;
+            lungeReturnAt = 0L;
         }
     }
 }

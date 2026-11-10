@@ -31,4 +31,36 @@ public final class FirebaseRefs {
     public static DatabaseReference formation(String uid) {
         return player(uid).child("formation");
     }
+
+    public static DatabaseReference arenaState(String uid) {
+        return player(uid).child("arena");
+    }
+
+    public static DatabaseReference arenaInbox(String uid) {
+        return player(uid).child("arenaInbox");
+    }
+
+    public static DatabaseReference arenaSnapshots() {
+        return root().child("arena").child("snapshots");
+    }
+
+    public static DatabaseReference arenaSnapshot(String uid) {
+        return arenaSnapshots().child(uid);
+    }
+
+    public static DatabaseReference battles() {
+        return root().child("battles");
+    }
+
+    public static DatabaseReference battle(String bid) {
+        return battles().child(bid);
+    }
+
+    public static DatabaseReference rankings(String season, String mode) {
+        return root().child("rankings").child(season).child(mode);
+    }
+
+    public static DatabaseReference ranking(String season, String mode, String uid) {
+        return rankings(season, mode).child(uid);
+    }
 }

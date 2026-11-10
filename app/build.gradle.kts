@@ -12,8 +12,8 @@ android {
         applicationId = "zhaf.media.themyth"
         minSdk = 24
         targetSdk = 36
-        versionCode = 9
-        versionName = "4.4"
+        versionCode = 10
+        versionName = "4.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

@@ -62,6 +62,63 @@
           "cp": { ".validate": "newData.isNumber() && newData.val() >= 0" }
         },
 
+        "summons": {
+          "$poolId": {
+            "epicPity": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 20" },
+            "legendaryPity": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 80" },
+            "totalPulls": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+            "lastPullAt": { ".validate": "newData.isNumber()" },
+            "history": {
+              "$pullId": {
+                ".validate": "newData.val() === null || (newData.hasChildren(['charId','rarity','at']) && newData.child('at').isNumber())"
+              }
+            },
+            "$other": { ".validate": true }
+          }
+        },
+
+        "charShards": {
+          "$charId": { ".validate": "newData.isNumber() && newData.val() >= 0" }
+        },
+
+        "shopLimits": {
+          "$offerId": {
+            "count": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 999" },
+            "resetAt": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+            "$other": { ".validate": true }
+          }
+        },
+
+        "arena": {
+          "rating": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 5000" },
+          "wins": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+          "losses": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+          "streak": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 99" },
+          "points": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+          "tickets": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 5" },
+          "ticketAt": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+          "settled": {
+            "$bid": { ".validate": "newData.val() === true" }
+          },
+          "defended": {
+            "$bid": { ".validate": "newData.val() === true" }
+          },
+          "$other": { ".validate": true }
+        },
+
+        "arenaInbox": {
+          "$bid": {
+            ".write": "auth != null && (!data.exists() || data.child('by').val() === auth.uid)",
+            ".validate": "newData.hasChildren(['winner','ratingDelta','by','at']) && newData.child('by').val() === auth.uid && newData.numChildren() <= 8",
+            "winner": { ".validate": "newData.isNumber() && newData.val() >= -1 && newData.val() <= 1" },
+            "ratingDelta": { ".validate": "newData.isNumber() && newData.val() >= -200 && newData.val() <= 200" },
+            "by": { ".validate": "newData.isString() && newData.val().length >= 1" },
+            "at": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+            "rating": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 5000" },
+            "$other": { ".validate": true }
+          }
+        },
+
         "guild": { ".read": true },
         "mailIndex": { ".read": true },
         "requests": { "$reqId": { ".validate": "newData.child('status').val() === 'DONE'" } },
@@ -101,8 +158,39 @@
         ".read": "auth != null && (data.child('aUid').val() === auth.uid || data.child('bUid').val() === auth.uid)",
         ".write": "auth != null && !data.exists()",
         "aUid": { ".validate": "newData.val() === auth.uid" },
+        "bUid": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val() !== auth.uid" },
+        "mode": { ".validate": "newData.val() === 'ARENA' || newData.val() === 'PVP'" },
         "seed": { ".validate": "newData.isNumber()" },
-        "status": { ".validate": "newData.val() === 'PENDING'" }
+        "createdAt": { ".validate": "newData.isNumber()" },
+        "status": {
+          ".write": "auth != null && root.child('battles').child($bid).child('aUid').val() === auth.uid && (!data.exists() || data.val() === 'PENDING')",
+          ".validate": "newData.val() === 'PENDING' || newData.val() === 'SETTLED'"
+        },
+        "result": {
+          ".write": "auth != null && !data.exists() && root.child('battles').child($bid).child('aUid').val() === auth.uid",
+          ".validate": "newData.hasChildren(['winner','ticks','hpA','hpB','hash','by','at']) && newData.numChildren() <= 8",
+          "winner": { ".validate": "newData.isNumber() && newData.val() >= -1 && newData.val() <= 1" },
+          "ticks": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 900" },
+          "hpA": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100" },
+          "hpB": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100" },
+          "hash": { ".validate": "newData.isString()" },
+          "by": { ".validate": "newData.val() === root.child('battles').child($bid).child('aUid').val()" },
+          "at": { ".validate": "newData.isNumber()" },
+          "$other": { ".validate": true }
+        },
+        "a": {
+          ".validate": "newData.hasChildren(['uid','units','cp','rating'])",
+          "uid": { ".validate": "newData.val() === root.child('battles').child($bid).child('aUid').val()" },
+          "units": { ".validate": "newData.hasChildren() && newData.numChildren() <= 3" },
+          "$other": { ".validate": true }
+        },
+        "b": {
+          ".validate": "newData.hasChildren(['uid','units','cp','rating'])",
+          "uid": { ".validate": "newData.val() === root.child('battles').child($bid).child('bUid').val()" },
+          "units": { ".validate": "newData.hasChildren() && newData.numChildren() <= 3" },
+          "$other": { ".validate": true }
+        },
+        "$other": { ".validate": true }
       }
     },
 
@@ -116,7 +204,18 @@
     "arena": {
       "snapshots": {
         ".read": "auth != null",
-        "$uid": { ".write": "auth != null && auth.uid === $uid" }
+        ".indexOn": ["rating"],
+        "$uid": {
+          ".write": "auth != null && auth.uid === $uid",
+          ".validate": "newData.hasChildren(['uid','username','cp','rating','units','updatedAt']) && newData.child('uid').val() === $uid",
+          "uid": { ".validate": "newData.val() === $uid" },
+          "username": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 16" },
+          "cp": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+          "rating": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 5000" },
+          "updatedAt": { ".validate": "newData.isNumber()" },
+          "units": { ".validate": "newData.hasChildren() && newData.numChildren() <= 3" },
+          "$other": { ".validate": true }
+        }
       }
     },
 

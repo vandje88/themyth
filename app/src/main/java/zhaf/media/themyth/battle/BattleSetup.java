@@ -8,6 +8,8 @@ import java.util.Map;
 import zhaf.media.themyth.battle.engine.BattleInput;
 import zhaf.media.themyth.battle.engine.BattleUnit;
 import zhaf.media.themyth.battle.engine.Strategy;
+import zhaf.media.themyth.data.arena.ArenaSnapshot;
+import zhaf.media.themyth.data.arena.ArenaUnitSpec;
 import zhaf.media.themyth.data.model.EquipmentInstance;
 import zhaf.media.themyth.data.model.FormationState;
 import zhaf.media.themyth.data.model.RosterChar;
@@ -69,6 +71,30 @@ public final class BattleSetup {
 
         return new BattleInput(seed, teamA, teamB,
                 Strategy.from(formation.strategy), Strategy.BALANCED,
+                BattleInput.DEFAULT_MAX_TICKS);
+    }
+
+    public static BattleInput arena(ArenaSnapshot attacker, ArenaSnapshot defender, long seed) {
+        if (attacker == null || defender == null
+                || attacker.units.isEmpty() || defender.units.isEmpty()) {
+            return null;
+        }
+        List<BattleUnit> teamA = new ArrayList<>();
+        List<BattleUnit> teamB = new ArrayList<>();
+        for (ArenaUnitSpec spec : attacker.units) {
+            BattleUnit unit = spec.toBattleUnit(0, spec.slot, "A" + spec.slot);
+            SkillFactory.assign(unit, spec.basic, spec.skillOne, spec.skillTwo, spec.skillUltimate);
+            teamA.add(unit);
+        }
+        for (ArenaUnitSpec spec : defender.units) {
+            BattleUnit unit = spec.toBattleUnit(1, spec.slot, "B" + spec.slot);
+            SkillFactory.assign(unit, spec.basic, spec.skillOne, spec.skillTwo, spec.skillUltimate);
+            teamB.add(unit);
+        }
+        applySynergy(teamA);
+        applySynergy(teamB);
+        return new BattleInput(seed, teamA, teamB,
+                Strategy.from(attacker.strategy), Strategy.from(defender.strategy),
                 BattleInput.DEFAULT_MAX_TICKS);
     }
 

@@ -33,10 +33,12 @@ import zhaf.media.themyth.battle.engine.BattleEvent;
 import zhaf.media.themyth.battle.engine.BattleInput;
 import zhaf.media.themyth.battle.engine.BattleResult;
 import zhaf.media.themyth.core.UiErrors;
+import zhaf.media.themyth.data.arena.ArenaBattle;
 import zhaf.media.themyth.data.model.EquipmentInstance;
 import zhaf.media.themyth.data.model.FormationState;
 import zhaf.media.themyth.data.model.PlayerState;
 import zhaf.media.themyth.data.model.RosterChar;
+import zhaf.media.themyth.data.repository.ArenaRepository;
 import zhaf.media.themyth.data.repository.ProgressionRepository;
 import zhaf.media.themyth.data.repository.RosterRepository;
 import zhaf.media.themyth.data.staticdata.CharacterCatalog;
@@ -47,7 +49,10 @@ import zhaf.media.themyth.ui.login.LoginActivity;
 
 public class BattleActivity extends AppCompatActivity implements BattleFieldView.Listener {
 
+    public static final String EXTRA_BATTLE_ID = "extra_battle_id";
+
     private static final int MAX_LOG_LINES = 160;
+    private static final long ARENA_TIMEOUT_MS = 15_000L;
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -66,6 +71,34 @@ public class BattleActivity extends AppCompatActivity implements BattleFieldView
     private RosterRepository.Handle formationHandle;
     private BattleResult currentResult;
 
+    private String arenaBattleId;
+    private ArenaBattle arenaBattle;
+    private ArenaRepository.Settlement arenaSettlement;
+    private boolean arenaSettling;
+    private boolean arenaLoadStarted;
+
+    private final Runnable arenaTimeout = new Runnable() {
+        @Override
+        public void run() {
+            if (isFinishing() || isDestroyed()) {
+                return;
+            }
+            if (arenaBattle == null) {
+                arenaLoadStarted = false;
+                binding.overlayLoading.setVisibility(View.GONE);
+                binding.tvBattleError.setText(R.string.battle_arena_missing);
+                binding.overlayError.setVisibility(View.VISIBLE);
+                binding.tvBattleState.setText(R.string.battle_error);
+            } else if (arenaSettling || (currentResult != null && arenaSettlement == null)) {
+                arenaSettling = false;
+                binding.overlayLoading.setVisibility(View.GONE);
+                binding.tvBattleError.setText(R.string.battle_arena_save_failed);
+                binding.overlayError.setVisibility(View.VISIBLE);
+                binding.tvBattleState.setText(R.string.battle_error);
+            }
+        }
+    };
+
     private boolean rosterLoaded;
     private boolean formationLoaded;
     private boolean simulating;
@@ -83,6 +116,7 @@ public class BattleActivity extends AppCompatActivity implements BattleFieldView
             return;
         }
         uid = user.getUid();
+        arenaBattleId = getIntent().getStringExtra(EXTRA_BATTLE_ID);
         catalog = CharacterCatalog.get(this);
         equipCatalog = EquipmentCatalog.get(this);
         progressionRepository = new ProgressionRepository(this);
@@ -117,6 +151,13 @@ public class BattleActivity extends AppCompatActivity implements BattleFieldView
     @Override
     protected void onStart() {
         super.onStart();
+        if (arenaBattleId != null) {
+            if (!started && !simulating && !arenaSettling
+                    && arenaBattle == null && !arenaLoadStarted) {
+                loadArenaBattle();
+            }
+            return;
+        }
         if (!started && !simulating) {
             attachObservers();
         }
@@ -133,7 +174,7 @@ public class BattleActivity extends AppCompatActivity implements BattleFieldView
     protected void onResume() {
         super.onResume();
         binding.battleField.resumePlayback();
-        if (!started && !simulating && rosterLoaded && formationLoaded) {
+        if (arenaBattleId == null && !started && !simulating && rosterLoaded && formationLoaded) {
             maybeStart();
         }
     }
@@ -141,8 +182,18 @@ public class BattleActivity extends AppCompatActivity implements BattleFieldView
     @Override
     protected void onDestroy() {
         detachObservers();
+        disarmArenaTimeout();
         executor.shutdownNow();
         super.onDestroy();
+    }
+
+    private void armArenaTimeout() {
+        mainHandler.removeCallbacks(arenaTimeout);
+        mainHandler.postDelayed(arenaTimeout, ARENA_TIMEOUT_MS);
+    }
+
+    private void disarmArenaTimeout() {
+        mainHandler.removeCallbacks(arenaTimeout);
     }
 
     private void attachObservers() {
@@ -249,6 +300,116 @@ public class BattleActivity extends AppCompatActivity implements BattleFieldView
         binding.battleField.setBattle(result);
     }
 
+    private void loadArenaBattle() {
+        arenaLoadStarted = true;
+        showLoading(R.string.battle_state_loading);
+        armArenaTimeout();
+        ArenaRepository.loadBattle(uid, arenaBattleId, new ArenaRepository.BattleCallback() {
+            @Override
+            public void onData(ArenaBattle battle) {
+                if (isDestroyed() || arenaBattle != null) {
+                    return;
+                }
+                disarmArenaTimeout();
+                arenaBattle = battle;
+                if (battle.settled) {
+                    binding.overlayLoading.setVisibility(View.GONE);
+                    binding.tvBattleError.setText(R.string.battle_arena_already_settled);
+                    binding.overlayError.setVisibility(View.VISIBLE);
+                    binding.tvBattleState.setText(R.string.battle_error);
+                    return;
+                }
+                simulateArena();
+            }
+
+            @Override
+            public void onError(String reason) {
+                if (isDestroyed()) {
+                    return;
+                }
+                disarmArenaTimeout();
+                binding.overlayLoading.setVisibility(View.GONE);
+                binding.tvBattleError.setText(R.string.battle_arena_missing);
+                binding.overlayError.setVisibility(View.VISIBLE);
+                binding.tvBattleState.setText(R.string.battle_error);
+            }
+        });
+    }
+
+    private void simulateArena() {
+        BattleInput input = BattleSetup.arena(arenaBattle.a, arenaBattle.b, arenaBattle.seed);
+        if (input == null) {
+            binding.overlayLoading.setVisibility(View.GONE);
+            binding.tvBattleError.setText(R.string.battle_arena_missing);
+            binding.overlayError.setVisibility(View.VISIBLE);
+            binding.tvBattleState.setText(R.string.battle_error);
+            return;
+        }
+        simulating = true;
+        showLoading(R.string.battle_state_preparing);
+        executor.execute(() -> {
+            BattleResult result;
+            try {
+                result = BattleEngine.simulate(input);
+            } catch (RuntimeException error) {
+                mainHandler.post(() -> {
+                    if (isDestroyed()) {
+                        return;
+                    }
+                    simulating = false;
+                    binding.overlayLoading.setVisibility(View.GONE);
+                    binding.tvBattleError.setText(R.string.battle_error);
+                    binding.overlayError.setVisibility(View.VISIBLE);
+                });
+                return;
+            }
+            mainHandler.post(() -> {
+                if (isDestroyed()) {
+                    return;
+                }
+                simulating = false;
+                currentResult = result;
+                settleArena(result);
+            });
+        });
+    }
+
+    private void settleArena(BattleResult result) {
+        arenaSettling = true;
+        showLoading(R.string.battle_arena_saving);
+        armArenaTimeout();
+        ArenaRepository.settleBattle(uid, arenaBattle, result, System.currentTimeMillis(),
+                new ArenaRepository.SettlementCallback() {
+                    @Override
+                    public void onSuccess(ArenaRepository.Settlement settlement) {
+                        if (isDestroyed()) {
+                            return;
+                        }
+                        disarmArenaTimeout();
+                        arenaSettling = false;
+                        arenaSettlement = settlement;
+                        started = true;
+                        binding.overlayError.setVisibility(View.GONE);
+                        binding.overlayLoading.setVisibility(View.GONE);
+                        binding.tvBattleState.setText(R.string.battle_state_running);
+                        binding.battleField.setBattle(result);
+                    }
+
+                    @Override
+                    public void onError(String reason) {
+                        if (isDestroyed()) {
+                            return;
+                        }
+                        disarmArenaTimeout();
+                        arenaSettling = false;
+                        binding.overlayLoading.setVisibility(View.GONE);
+                        binding.tvBattleError.setText(R.string.battle_arena_save_failed);
+                        binding.overlayError.setVisibility(View.VISIBLE);
+                        binding.tvBattleState.setText(R.string.battle_error);
+                    }
+                });
+    }
+
     @Override
     public void onReady() {
         if (isDestroyed()) {
@@ -298,8 +459,22 @@ public class BattleActivity extends AppCompatActivity implements BattleFieldView
 
         String seconds = String.format(Locale.getDefault(), "%.1f",
                 currentResult.durationMs() / 1000.0);
-        binding.tvResultSubtitle.setText(
-                getString(R.string.battle_result_subtitle, seconds));
+        if (arenaBattle != null) {
+            binding.tvResultSubtitle.setText(getString(R.string.battle_result_arena_subtitle,
+                    arenaBattle.b.username, seconds));
+            if (arenaSettlement != null) {
+                binding.tvResultArena.setVisibility(View.VISIBLE);
+                binding.tvResultArena.setText(getString(R.string.battle_result_arena,
+                        arenaSettlement.rating, arenaSettlement.delta,
+                        arenaSettlement.coin, arenaSettlement.points));
+            } else {
+                binding.tvResultArena.setVisibility(View.GONE);
+            }
+        } else {
+            binding.tvResultArena.setVisibility(View.GONE);
+            binding.tvResultSubtitle.setText(
+                    getString(R.string.battle_result_subtitle, seconds));
+        }
 
         if (currentResult.mvpName == null) {
             binding.tvResultMvp.setVisibility(View.GONE);
@@ -445,6 +620,18 @@ public class BattleActivity extends AppCompatActivity implements BattleFieldView
     }
 
     private void retryLoad() {
+        if (arenaBattleId != null) {
+            binding.overlayError.setVisibility(View.GONE);
+            if (arenaBattle == null) {
+                arenaLoadStarted = false;
+                loadArenaBattle();
+            } else if (currentResult != null) {
+                settleArena(currentResult);
+            } else {
+                simulateArena();
+            }
+            return;
+        }
         detachObservers();
         started = false;
         simulating = false;

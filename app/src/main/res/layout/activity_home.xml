@@ -345,6 +345,30 @@
                             android:text="@string/home_formation_button" />
                     </LinearLayout>
 
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:orientation="horizontal">
+
+                        <androidx.appcompat.widget.AppCompatButton
+                            android:id="@+id/btnSummon"
+                            style="@style/Widget.TheMyth.Button.Secondary"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/home_summon" />
+
+                        <androidx.appcompat.widget.AppCompatButton
+                            android:id="@+id/btnShop"
+                            style="@style/Widget.TheMyth.Button.Secondary"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:layout_weight="1"
+                            android:text="@string/home_shop" />
+                    </LinearLayout>
+
                     <androidx.appcompat.widget.AppCompatButton
                         android:id="@+id/btnArena"
                         style="@style/Widget.TheMyth.Button.Secondary"

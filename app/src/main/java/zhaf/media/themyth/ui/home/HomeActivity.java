@@ -35,11 +35,14 @@ import zhaf.media.themyth.data.model.PlayerProfile;
 import zhaf.media.themyth.data.staticdata.CharacterCatalog;
 import zhaf.media.themyth.data.staticdata.CharacterTemplate;
 import zhaf.media.themyth.databinding.ActivityHomeBinding;
+import zhaf.media.themyth.ui.arena.ArenaActivity;
 import zhaf.media.themyth.ui.battle.BattleActivity;
 import zhaf.media.themyth.ui.formation.FormationActivity;
 import zhaf.media.themyth.ui.inventory.InventoryActivity;
 import zhaf.media.themyth.ui.login.LoginActivity;
 import zhaf.media.themyth.ui.roster.RosterActivity;
+import zhaf.media.themyth.ui.shop.ShopActivity;
+import zhaf.media.themyth.ui.summon.SummonActivity;
 
 public class HomeActivity extends AppCompatActivity {
 
@@ -87,12 +90,14 @@ public class HomeActivity extends AppCompatActivity {
         binding.btnRetry.setOnClickListener(v -> retryLoad());
         binding.btnLogout.setOnClickListener(v -> confirmLogout());
 
-        View.OnClickListener comingSoon = v ->
-                Snackbar.make(binding.getRoot(), R.string.home_coming_soon,
-                        Snackbar.LENGTH_SHORT).show();
         binding.btnPlay.setOnClickListener(
                 v -> startActivity(new Intent(this, BattleActivity.class)));
-        binding.btnArena.setOnClickListener(comingSoon);
+        binding.btnArena.setOnClickListener(
+                v -> startActivity(new Intent(this, ArenaActivity.class)));
+        binding.btnSummon.setOnClickListener(
+                v -> startActivity(new Intent(this, SummonActivity.class)));
+        binding.btnShop.setOnClickListener(
+                v -> startActivity(new Intent(this, ShopActivity.class)));
         binding.btnRoster.setOnClickListener(
                 v -> startActivity(new Intent(this, RosterActivity.class)));
         binding.btnFormation.setOnClickListener(

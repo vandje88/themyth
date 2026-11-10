@@ -47,21 +47,35 @@ Gunakan `runTransaction` pada `players/{uid}`; jika node sudah ada, jangan timpa
 
 ## 2. MATCHMAKING
 
-### 2.1 Ranked Arena (async)
-```
-1. Client memanggil findMatch(uid, rating, cp):
-   - tulis matchmaking/arena/{bracket}/{uid} {rating, cp, joinedAt, status: SEARCHING}
-2. Client memantau node bracket (orderByChild rating, limit ±60) tiap 2 detik.
-3. Jika menemukan lawan:
-   - keduanya menulis matchmaking/{...}/{uid}/status = MATCHED + opponentUid
-   - yang lebih dulu menulis membuat battles/{id} (rules: hanya 1 create)
-4. Jika 10 detik tidak ada lawan, perluas rentang (rating ± 150 → ± 300 → ± 600).
-5. Jika 30 detik tidak ada lawan → tawarkan "Lawan Bot" (ditandai jelas) ATAU batal.
-```
-**Bracket:** bronze, silver, gold, platinum, diamond, mythic. Fallback lintas bracket setelah 20 detik.
+### 2.1 Ranked Arena (async) — implementasi fase 1 (M7)
 
-### 2.2 Bot
-Bot dibuat dari snapshot pemain dengan rating terdekat milik "bot pool" statis (`static/bots`), level & CP disesuaikan. Bot **tidak** masuk ranking pemain lain dan tidak memberi rank point penuh (50%).
+Tanpa Cloud Functions, matchmaking tidak memakai node antrean. Yang berjalan:
+
+```
+1. Saat membuka Arena / mengganti formasi, client menulis snapshot diri:
+   arena/snapshots/{uid} {username, cp, rating, strategy, units{0..2}, updatedAt}
+   (hanya jika formasi berisi >= 3 unit).
+2. Tekan "Cari Lawan" → query
+   arena/snapshots.orderByChild("rating").startAt(r - w).endAt(r + w), limit 12.
+3. Jendela w melebar 150 → 300 → 600 tiap 10 detik, dibatalkan otomatis pada 60 detik.
+4. Kandidat dipilih ArenaMatchmaker.pick (rating terdekat, uid sebagai tie-break,
+   tidak memilih diri sendiri). Jika kosong → tawaran bot bot_{uid}.
+5. Client memotong 1 tiket (transaksi players/{uid}/arena, maks 5, regen 30 menit)
+   lalu membuat battles/{bid} berisi seed acak, snapshot kedua tim, status PENDING.
+6. BattleActivity memuat battle, mensimulasikan BattleEngine lokal, menampilkan animasi,
+   lalu menulis result (sekali) + status SETTLED + rankings + inbox lawan dalam satu
+   updateChildren.
+```
+
+Node `matchmaking/{mode}/{bracket}/{uid}` di §9 tetap dicadangkan untuk live matchmaking fase 2, dan `onDisconnect` belum diperlukan karena tidak ada antrean persisten.
+
+Bracket tier (Bronze <1000 … Mythic ≥2200) hanya dipakai untuk menampilkan tier dan memilih warna UI; query memakai rating mentah agar tidak ada "dinding bracket".
+
+### 2.1b Bot
+
+Bot = snapshot sintetis `bot_{uid}` dengan rating & CP mendekati pemain, dibangun `ArenaMatchmaker.botFor`. Efeknya:
+- K = 8 untuk rating (menang/loss kecil), tidak menulis `arenaInbox`, tidak masuk `rankings`, dan ditandai jelas di UI ("Bot").
+- Berguna agar pemain baru tidak tertahan saat server sepi; bukan pengganti ranked sungguhan.
 
 ### 2.3 Casual & Friend Battle
 - Casual: sama, tanpa rating.
@@ -85,10 +99,11 @@ SETTLED (reward & rating ditulis)
 ARCHIVED (setelah 7 hari / cleanup)
 ```
 
-Aturan rules:
-- `battles/{id}` hanya boleh dibuat oleh `aUid`.
-- `result` hanya boleh ditulis jika `status == PENDING` dan belum ada `result`.
-- `status = SETTLED` hanya boleh ditulis oleh server (Fase 2) atau client untuk mode PvE.
+Aturan rules (yang sudah aktif di `database.rules.json`):
+- `battles/{id}` hanya boleh dibuat oleh `aUid`; `bUid` wajib string ≠ `auth.uid`, dan `a`/`b` wajib memuat `uid`, `units`, `cp`, `rating`.
+- `result` hanya boleh ditulis jika belum ada dan `auth.uid == aUid`; `result.by` wajib sama dengan `aUid`; `ticks` 1..900, `winner` -1..1, `hpA`/`hpB` 0..100.
+- `status` hanya `PENDING` → `SETTLED`, hanya oleh `aUid` (fase 1 arena). Fase 2 memindahkan penulisan `status`/`result` ke Function dan mencabut izin ini.
+- `players/{uid}/arena/settled/{bid}` dan `defended/{bid}` hanya boleh `true`; keduanya penanda idempoten, bukan data yang dibaca UI.
 
 ---
 
@@ -108,6 +123,22 @@ Fase 1 (tanpa Function) hanya dapat memeriksa plausibility:
 - Satu `battleId` hanya untuk satu pasangan UID.
 - Reward tidak melebihi batas harian.
 
+### 4.1 `ArenaResultGuard` (implementasi fase 1)
+
+Sebelum menulis apa pun, `ArenaRepository.settleBattle` memanggil `ArenaResultGuard.validate(...)` dengan status `PENDING` dan hasil simulasi lokal:
+
+| Cek | Aturan | Alasan |
+|---|---|---|
+| Status | harus `PENDING` (belum disettle) | mencegah settle ganda |
+| `winner` | `-1` (draw), `0` (A), `1` (B) saja | mencegah nilai liar |
+| Konsistensi HP | menang A → `hpB == 0`; menang B → `hpA == 0`; draw → kedua > 0 | menutup "menang tanpa musuh mati" |
+| `ticks` | 1..`DEFAULT_MAX_TICKS` (900) | durasi battle wajar |
+| `hpA`/`hpB` | 0..100 | persen valid |
+
+Hash replay (SHA-256 dari seed + event) tetap dihitung dan disimpan, tetapi fase 1 belum membandingkannya dengan simulasi ulang server — nilainya untuk audit dan Fase 2.
+
+**Batas yang jujur:** client penyerang masih pemilik kebenaran hasil. Pemain yang memodifikasi APK bisa menulis `winner` palsu yang lolos guard (mis. `winner=0, hpB=0`). Mitigasi fase 1: reward kecil (koin + poin, bukan diamond), tiket terbatas, dan marker sekali-settle; mitigasi fase 2: simulasi ulang di Functions dan bandingkan `hash` (`REJECTED` + audit). Karena itu, papan peringkat fase 1 **belum boleh** dipakai untuk hadiah bernilai nyata.
+
 ---
 
 ## 5. RATING (ELO MODIFIED)
@@ -120,9 +151,13 @@ K = 32 (< 1600), 24 (1600–2199), 16 (>= 2200)
 newRatingA = max(0, ratingA + delta)
 ```
 - Bot: `K = 8`, hanya pemain yang berubah.
-- Win streak ≥ 3: +5 bonus (maks +15).
+- Draw: `score = 0.5` untuk kedua pihak (perubahan kecil, tidak memicu bonus streak).
+- Win streak ≥ 3: +5 bonus (maks +15); bonus hanya untuk kemenangan non-bot.
 - Rank tier dari rating: Bronze <1000, Silver 1000–1299, Gold 1300–1599, Platinum 1600–1899, Diamond 1900–2199, Mythic ≥2200.
 - Soft reset musiman: `1200 + (rating - 1200) × 0.6`.
+- Musim fase 1: string `sYYYY_MM` dihitung UTC (`2026_11`), dipakai sebagai key `rankings/{season}/arena`.
+
+**Rating pembela:** penyerang menghitung `ArenaRating.delta(b.rating, a.rating, defenderWin, 0, false)` dan menaruhnya sebagai `ratingDelta` di inbox. Pembela menerapkan angka itu apa adanya setelah memverifikasi battle — jadi kedua sisi konsisten tanpa perlu online bersamaan.
 
 ---
 
@@ -208,9 +243,11 @@ requests/{uid}/{requestId} = { type, status, result, createdAt }
 | Pasang equipment | multi-write | `roster/{charId}/equipment`, `equipment/{id}/equippedBy` | — |
 | Summon | transaction | `players/{uid}/summons/{pool}` + `roster` + `currencies` | pool, count |
 | Klaim mail | transaction | `requests`, `mail`, `currencies` | requestId, mailId |
-| Cari arena | write/listen | `matchmaking/arena/{bracket}/{uid}` | rating, cp |
-| Submit hasil | write-once | `battles/{id}/result` | winner, turns, hash |
-| Leaderboard | query | `rankings/{season}/arena` | orderByChild score |
+| Cari arena | write + query | `arena/snapshots/{uid}` (write sendiri), `orderByChild("rating")` (baca) | snapshot formasi |
+| Tanding | transaction + push | `players/{uid}/arena/tickets`, `battles/{id}` | — |
+| Submit hasil | write-once | `battles/{id}/result` + `status` | winner, ticks, hash |
+| Klaim pembelaan | transaction | `players/{uid}/arena` (`arenaInbox`) | — |
+| Leaderboard | query | `rankings/{season}/arena` (season `sYYYY_MM`) | orderByChild score |
 | Guild join | transaction | `guilds/{gid}/members`, `players/{uid}/guild` | gid |
 | Chat | push | `guilds/{gid}/chat` | text |
 | Presence | set + onDisconnect | `presence/{uid}` | online, state |

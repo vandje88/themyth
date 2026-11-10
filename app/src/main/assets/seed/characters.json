@@ -1,6 +1,102 @@
 {
-  "version": 2,
+  "version": 3,
   "characters": [
+    {
+      "id": "sena_agni",
+      "name": "Sena Agni",
+      "title": "Bara Pertama",
+      "element": "fire",
+      "role": "fighter",
+      "rarity": "common"
+    },
+    {
+      "id": "raka_baja",
+      "name": "Raka Baja",
+      "title": "Perisai Karat",
+      "element": "earth",
+      "role": "tank",
+      "rarity": "common"
+    },
+    {
+      "id": "gilang_bayu",
+      "name": "Gilang Bayu",
+      "title": "Langkah Ringan",
+      "element": "wind",
+      "role": "assassin",
+      "rarity": "common"
+    },
+    {
+      "id": "dewi_asri",
+      "name": "Dewi Asri",
+      "title": "Tunas Rimba",
+      "element": "earth",
+      "role": "support",
+      "rarity": "uncommon"
+    },
+    {
+      "id": "nyi_tirta",
+      "name": "Nyi Tirta",
+      "title": "Suara Teluk",
+      "element": "water",
+      "role": "mage",
+      "rarity": "uncommon"
+    },
+    {
+      "id": "wira_kilat",
+      "name": "Wira Kilat",
+      "title": "Kilat Muda",
+      "element": "lightning",
+      "role": "assassin",
+      "rarity": "uncommon"
+    },
+    {
+      "id": "angin_laras",
+      "name": "Angin Laras",
+      "title": "Suling Awan",
+      "element": "wind",
+      "role": "mage",
+      "rarity": "rare"
+    },
+    {
+      "id": "wira_bumi",
+      "name": "Wira Bumi",
+      "title": "Akar Penjaga",
+      "element": "earth",
+      "role": "tank",
+      "rarity": "rare"
+    },
+    {
+      "id": "banyu_aji",
+      "name": "Banyu Aji",
+      "title": "Ombak Perkasa",
+      "element": "water",
+      "role": "fighter",
+      "rarity": "rare"
+    },
+    {
+      "id": "samudra_wening",
+      "name": "Samudra Wening",
+      "title": "Nyanyian Penyembuh",
+      "element": "water",
+      "role": "support",
+      "rarity": "epic"
+    },
+    {
+      "id": "kala_rudra",
+      "name": "Kala Rudra",
+      "title": "Petir Merah",
+      "element": "lightning",
+      "role": "fighter",
+      "rarity": "epic"
+    },
+    {
+      "id": "bhumi_aksara",
+      "name": "Bhumi Aksara",
+      "title": "Penulis Tanah",
+      "element": "earth",
+      "role": "mage",
+      "rarity": "epic"
+    },
     {
       "id": "gatotkaca",
       "name": "Gatotkaca",
@@ -11,6 +107,38 @@
       "sprite": "gatotkaca"
     },
     {
+      "id": "aruna",
+      "name": "Aruna",
+      "title": "Bara Senja",
+      "element": "fire",
+      "role": "assassin",
+      "rarity": "legendary"
+    },
+    {
+      "id": "naga_samudra",
+      "name": "Naga Samudra",
+      "title": "Penjaga Palung",
+      "element": "water",
+      "role": "tank",
+      "rarity": "legendary"
+    },
+    {
+      "id": "ratu_kilat",
+      "name": "Ratu Kilat",
+      "title": "Mahkota Badai",
+      "element": "lightning",
+      "role": "mage",
+      "rarity": "legendary"
+    },
+    {
+      "id": "rani_puspa",
+      "name": "Rani Puspa",
+      "title": "Tombak Puspa",
+      "element": "wind",
+      "role": "fighter",
+      "rarity": "legendary"
+    },
+    {
       "id": "nyai_roro_kidul",
       "name": "Nyai Roro Kidul",
       "title": "Ratu Laut Kidul",
@@ -18,6 +146,22 @@
       "role": "mage",
       "rarity": "legendary",
       "sprite": "nyairorokidul"
+    },
+    {
+      "id": "hyang_aditya",
+      "name": "Hyang Aditya",
+      "title": "Matahari Terakhir",
+      "element": "fire",
+      "role": "support",
+      "rarity": "mythic"
+    },
+    {
+      "id": "sang_penjaga_gerbang",
+      "name": "Sang Penjaga Gerbang",
+      "title": "Penjaga Retakan",
+      "element": "lightning",
+      "role": "tank",
+      "rarity": "mythic"
     }
   ]
 }

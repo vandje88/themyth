@@ -394,6 +394,17 @@
                 android:textSize="13sp" />
 
             <TextView
+                android:id="@+id/tvResultArena"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center"
+                android:textColor="@color/cyan"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
+            <TextView
                 android:id="@+id/tvResultHash"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

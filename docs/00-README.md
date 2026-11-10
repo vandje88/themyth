@@ -2,9 +2,9 @@
 
 **2D Anime Mitologi RPG · 3 VS 3 Idle Auto Battle · Android · Firebase**
 
-Versi dokumen: 1.0 (2026-11-10)
-Status kode: baseline template Android Studio, `assembleDebug` **SUKSES**.
-Status dokumen: lengkap untuk fase desain; implementasi mengikuti roadmap di `05-TECHNICAL-ANDROID.md`.
+Versi dokumen: 1.2 (2026-11-10)
+Status kode: M0–M7 selesai (fondasi, auth, roster/formasi, battle engine + UI, progression, gacha + shop, arena async). `assembleDebug`, unit test, dan `lintDebug` **SUKSES**.
+Status dokumen: lengkap untuk fase desain; implementasi mengikuti roadmap di `05-TECHNICAL-ANDROID.md` (berikutnya M8 Sosial).
 
 ---
 
@@ -99,13 +99,32 @@ Seluruh aset gambar/audio dibundel di APK (`res/drawable`, `assets/`), bukan diu
 
 ## 7. Langkah Berikutnya
 
-Setelah dokumen ini disetujui:
+Roadmap implementasi (lihat `05-TECHNICAL-ANDROID.md` §9):
 
-1. M1 — Fondasi: tema, navigasi, Auth guest + Google, bootstrap player node.
-2. M2 — Roster & formasi 3v3 + layar karakter.
-3. M3 — BattleEngine + layar battle (offline/PvE) + replay.
-4. M4 — Progression, inventory, equipment, gacha.
-5. M5 — Arena async, ranking, guild, mail, event.
-6. M6 — Polish, anti-cheat, load test, rilis.
+| Milestone | Status |
+|---|---|
+| M0 Fondasi (Gradle, tema, core, `FirebaseRefs`) | Selesai |
+| M1 Auth + Shell (Guest + Google, bootstrap player, home) | Selesai |
+| M2 Roster + Formasi 3v3 | Selesai |
+| M3 Battle Engine + unit test determinisme | Selesai |
+| M4 Battle UI (SurfaceView, HP bar, result, replay) | Selesai |
+| M5 Progression (level, breakthrough, equipment, skill) | Selesai |
+| M6 Gacha + Shop (pity, riwayat, batas beli harian) | Selesai — versi 4.5 |
+| M7 Arena Async (snapshot, matchmaking, rating, ranking) | Selesai — fase 1 tanpa Functions |
+| M8 Sosial (guild, chat, boss, friend, mail) | Berikutnya |
+| M9 Event + Polish | Belum |
+| M10 QA + Rilis | Belum |
 
-Detail estimasi ada di `05-TECHNICAL-ANDROID.md` bagian Roadmap.
+Catatan M6:
+- Data pool ada di `app/src/main/assets/seed/gacha.json`, data shop di `seed/shop.json` (dibaca lokal, bukan dari RTDB — sesuai batasan tanpa Storage).
+- Seluruh roll dan pembelian dijalankan lewat satu transaksi pada `players/{uid}` agar saldo, roster, pity, dan batas beli tidak bisa terdesinkronisasi.
+- Unit test `GachaRollerTest` memverifikasi 1.000.000 roll tetap di dalam rate yang dipublikasikan.
+
+Catatan M7 (Arena Async, fase 1 tanpa Cloud Functions):
+- Alur: `ArenaActivity` memublikasikan snapshot formasi ke `arena/snapshots/{uid}`, mencari lawan lewat `orderByChild("rating")` dengan jendela melebar (150 → 300 → 600 tiap 10 detik, batas 60 detik), lalu membuat `battles/{bid}` dan membuka `BattleActivity` dengan `EXTRA_BATTLE_ID`.
+- Penyerang selalu tim A. Hasil dihitung ulang secara deterministik dari seed; hanya hasil simulasi lokal yang boleh ditulis, tepat satu kali, oleh `aUid`.
+- Rating ELO K 32/24/16 (bot K 8), bonus streak mulai 3 kemenangan, musim `sYYYY_MM` (UTC), papan peringkat `rankings/{season}/arena` (top 20 di UI).
+- Tiket 5 maksimum, regen 30 menit, waktu dihitung client dari `arena/ticketAt`.
+- Pembela tidak perlu online: hasil masuk ke `players/{bUid}/arenaInbox/{bid}`, lalu diverifikasi ulang client pembela terhadap node `battles/{bid}` sebelum ratingnya diubah (ditandai `arena/defended/{bid}` agar idempoten).
+- Batas fase 1 (disadari): settlement tetap dijalankan client penyerang dan hanya dijaga `ArenaResultGuard` (winner konsisten dengan HP, jumlah tick wajar, hash ada). Sebelum reward nyata, pindahkan verifikasi ke Cloud Functions.
+- Emulator pengembangan saat ini gagal handshake TLS ke Firebase (SSL scanning Avast memotong sertifikat), sehingga alur jaringan hanya terverifikasi lewat unit test dan state UI; uji dua perangkat diperlukan di jaringan bersih.

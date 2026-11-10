@@ -5,6 +5,10 @@ public final class GameConstants {
     public static final int SLOT_COUNT = 3;
     public static final int MAX_STARS = 6;
 
+    public static final String[] RARITY_LADDER = {
+            "common", "uncommon", "rare", "epic", "legendary", "mythic"
+    };
+
     private GameConstants() {
     }
 

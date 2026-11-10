@@ -66,6 +66,9 @@ app/src/main/
 │   │
 │   ├── data/
 │   │   ├── FirebaseRefs.java           // semua path RTDB (single source)
+│   │   ├── arena/                      // ArenaRating, ArenaTickets, ArenaMatchmaker,
+│   │   │                               // ArenaBattle, ArenaSnapshot, ArenaSnapshotFactory,
+│   │   │                               // ArenaResultGuard, ArenaRewards
 │   │   ├── model/                      // Player, RosterChar, EquipmentInstance,
 │   │   │                               // ItemStack, Formation, BattleResult, MailItem,
 │   │   │                               // GuildInfo, MissionState, Reward
@@ -126,7 +129,7 @@ app/src/main/
 │       ├── summon/    SummonFragment, SummonResultDialog, SummonHistoryFragment
 │       ├── shop/      ShopFragment
 │       ├── quest/     QuestFragment
-│       ├── arena/     ArenaFragment, RankedMatchFragment
+│       ├── arena/     ArenaActivity (profil, matchmaking, leaderboard)
 │       ├── ranking/   RankingFragment
 │       ├── guild/     GuildFragment, GuildChatFragment, GuildBossFragment
 │       ├── friend/    FriendFragment
@@ -285,6 +288,8 @@ Low-end (RAM 2 GB, Android 7), mid (Android 11), high (Android 14), tablet 16:10
 
 Dengan 1 developer penuh waktu: **± 3 bulan** untuk MVP layak rilis; **5–6 bulan** untuk versi dengan guild/event/polish.
 Part-time (4 jam/hari): kalikan ± 2 → 6–8 bulan.
+
+> **Status 2026-11-10:** M0–M7 sudah diimplementasikan dan lolos `assembleDebug`, unit test, dan lint. M7 berjalan sebagai fase 1 tanpa Cloud Functions: snapshot + query rating + settlement client dengan penjaga plausibility (lihat `04-BACKEND-API.md` §4.1). M8 berikutnya.
 
 **Jalur cepat (vertical slice 3 minggu):** M0 + M1 + M2 + M3 + M4 versi sederhana (kotak warna, tanpa sprite final) → bisa dimainkan end-to-end lebih dulu, lalu ganti aset.
 

@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "offers": [
+    {
+      "id": "o_exp_s",
+      "itemId": "expscroll_s",
+      "qty": 5,
+      "currency": "coin",
+      "price": 1500,
+      "dailyLimit": 5
+    },
+    {
+      "id": "o_exp_m",
+      "itemId": "expscroll_m",
+      "qty": 2,
+      "currency": "coin",
+      "price": 2400,
+      "dailyLimit": 3
+    },
+    {
+      "id": "o_skill",
+      "itemId": "scroll_skill",
+      "qty": 2,
+      "currency": "coin",
+      "price": 1600,
+      "dailyLimit": 4
+    },
+    {
+      "id": "o_enhance",
+      "itemId": "stone_enhance",
+      "qty": 5,
+      "currency": "coin",
+      "price": 2000,
+      "dailyLimit": 5
+    },
+    {
+      "id": "o_stone_fire",
+      "itemId": "stone_fire",
+      "qty": 1,
+      "currency": "coin",
+      "price": 5000,
+      "dailyLimit": 2
+    },
+    {
+      "id": "o_stone_water",
+      "itemId": "stone_water",
+      "qty": 1,
+      "currency": "coin",
+      "price": 5000,
+      "dailyLimit": 2
+    },
+    {
+      "id": "o_ticket",
+      "itemId": "ticketSummon",
+      "qty": 1,
+      "currency": "diamond",
+      "price": 150,
+      "dailyLimit": 3
+    },
+    {
+      "id": "o_exp_m_diamond",
+      "itemId": "expscroll_m",
+      "qty": 5,
+      "currency": "diamond",
+      "price": 400,
+      "dailyLimit": 2
+    }
+  ]
+}

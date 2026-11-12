@@ -317,6 +317,17 @@
     <string name="status_stun">Stun</string>
     <string name="status_atk_up">ATK+</string>
     <string name="status_def_down">DEF−</string>
+    <string name="status_curse">Kutukan</string>
+    <string name="status_atk_down">ATK−</string>
+    <string name="status_def_up">DEF+</string>
+    <string name="status_slow">Lambat</string>
+    <string name="status_spd_up">Cepat</string>
+    <string name="status_blind">Buta</string>
+    <string name="status_silence">Bisu</string>
+    <string name="status_evade_up">Hindar+</string>
+    <string name="status_crit_up">Krit+</string>
+    <string name="status_res_up">Res+</string>
+    <string name="status_reflect">Pantul</string>
 
     <string name="home_summon">Panggil Mitos</string>
     <string name="home_shop">Toko</string>
@@ -644,4 +655,32 @@
     <string name="ranking_position">#%1$d</string>
     <string name="ranking_self_row">Peringkat #%1$d · %2$s poin</string>
     <string name="ranking_outside">Di luar 20 besar · %1$s poin</string>
+
+    <string name="settings_title">Pengaturan</string>
+    <string name="settings_subtitle">Audio, notifikasi, dan info aplikasi</string>
+    <string name="settings_audio_title">Efek Suara</string>
+    <string name="settings_audio_desc">Aktifkan efek suara pertarungan dan antarmuka.</string>
+    <string name="settings_audio_test">Tes Suara</string>
+    <string name="settings_notif_title">Notifikasi</string>
+    <string name="settings_notif_desc">Pengingat energi penuh dan hadiah idle.</string>
+    <string name="settings_notif_test">Tes Notifikasi</string>
+    <string name="settings_notif_allow">Izinkan Notifikasi</string>
+    <string name="settings_about_title">Tentang</string>
+    <string name="settings_about_note">The Myth dibuat oleh Zhaf Media.</string>
+
+    <string name="notifications_channel">Pengingat The Myth</string>
+    <string name="notifications_channel_desc">Notifikasi hadiah idle, login harian, misi, event, dan surat.</string>
+    <string name="notif_idle_title">Hadiah Idle Siap</string>
+    <string name="notif_idle_text">Buka The Myth untuk mengklaim hadiah idle kamu.</string>
+    <string name="notif_daily_title">Login Harian</string>
+    <string name="notif_daily_text">Hadiah login harian hari ini belum diklaim.</string>
+    <string name="notif_mission_title">Misi Harian Selesai</string>
+    <string name="notif_mission_text">Ada misi harian yang siap diklaim.</string>
+    <string name="notif_event_title">Event: %1$s</string>
+    <string name="notif_mail_title">Surat Baru</string>
+
+    <plurals name="notif_mail_text">
+        <item quantity="one">%1$d surat belum dibaca.</item>
+        <item quantity="other">%1$d surat belum dibaca.</item>
+    </plurals>
 </resources>

@@ -6,6 +6,8 @@ public enum SpriteAnimation {
     ATTACK("attack.png", 4, 2, 70, false, false),
     HURT("hurt.png", 4, 1, 70, false, false),
     DEFEND("defend.png", 4, 1, 90, false, false),
+    STUN("stun.png", 4, 2, 80, true, false),
+    CONFUSED("confused.png", 4, 2, 80, true, false),
     DEAD("dead.png", 4, 2, 110, false, true),
     VICTORY("victory.png", 4, 3, 110, true, false),
     SKILL1("skill1.png", 4, 3, 70, false, false),

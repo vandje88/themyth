@@ -32,6 +32,14 @@ public final class FirebaseRefs {
         return meta(uid).child("claims");
     }
 
+    public static DatabaseReference metaEvents(String uid) {
+        return meta(uid).child("events");
+    }
+
+    public static DatabaseReference metaEvent(String uid, String eventId) {
+        return metaEvents(uid).child(eventId);
+    }
+
     public static DatabaseReference roster(String uid) {
         return player(uid).child("roster");
     }

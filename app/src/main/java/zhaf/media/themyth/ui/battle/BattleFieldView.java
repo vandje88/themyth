@@ -8,8 +8,6 @@ import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.Typeface;
-import android.os.Handler;
-import android.os.Looper;
 import android.os.SystemClock;
 import android.text.TextPaint;
 import android.text.TextUtils;
@@ -46,7 +44,6 @@ public final class BattleFieldView extends View {
         void onPlaybackEnd();
     }
 
-    private static final long FRAME_INTERVAL_MS = 30L;
     private static final long FLOAT_DURATION_MS = 900L;
     private static final long BANNER_DURATION_MS = 1100L;
     private static final long STATUS_DURATION_MS = 5000L;
@@ -54,16 +51,23 @@ public final class BattleFieldView extends View {
     private static final long LUNGE_APPROACH_MAX_MS = 220L;
     private static final long LUNGE_RETURN_MS = 180L;
     private static final long ACTION_PADDING_MS = 120L;
+    private static final long EFFECT_DURATION_MS =
+            (long) SpriteArt.EFFECT_FRAMES * SpriteArt.EFFECT_FRAME_MS;
 
     private static final SpriteAnimation[] PRELOAD = {
             SpriteAnimation.IDLE,
+            SpriteAnimation.RUN,
             SpriteAnimation.ATTACK,
             SpriteAnimation.HURT,
+            SpriteAnimation.DEFEND,
+            SpriteAnimation.STUN,
+            SpriteAnimation.CONFUSED,
             SpriteAnimation.DEAD,
             SpriteAnimation.VICTORY,
             SpriteAnimation.SKILL1,
             SpriteAnimation.SKILL2,
-            SpriteAnimation.ULTIMA1
+            SpriteAnimation.ULTIMA1,
+            SpriteAnimation.ULTIMA2
     };
 
     private static final float[] SLOT_X = {0.33f, 0.215f, 0.10f};
@@ -81,12 +85,11 @@ public final class BattleFieldView extends View {
     private final Paint glowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Rect srcRect = new Rect();
     private final RectF dstRect = new RectF();
-    private final Handler handler = new Handler(Looper.getMainLooper());
 
     private final List<UnitState> states = new ArrayList<>();
     private final List<UnitState> drawOrder = new ArrayList<>();
     private final Map<String, UnitState> byUid = new HashMap<>();
-    private final Map<String, Sheet> sheets = new HashMap<>();
+    private final Map<String, SpriteArt.Frames> sheets = new HashMap<>();
     private final List<FloatText> floats = new ArrayList<>();
 
     private List<BattleEvent> events = new ArrayList<>();
@@ -104,6 +107,13 @@ public final class BattleFieldView extends View {
     private boolean ended;
     private boolean ready;
     private int pendingSheets;
+    private long sheetGeneration;
+    private long effectGeneration;
+    private long effectStartMs;
+    private UnitState effectSource;
+    private SpriteAnimation effectAnimation;
+    private SpriteArt.Frames activeEffect;
+    private UltimateEffectView ultimateEffectView;
     private final float density;
     private final float scaledDensity;
     private Listener listener;
@@ -111,7 +121,7 @@ public final class BattleFieldView extends View {
     private final Runnable frameTick = new Runnable() {
         @Override
         public void run() {
-            if (!playing) {
+            if (!playing || !isAttachedToWindow()) {
                 return;
             }
             long now = SystemClock.uptimeMillis();
@@ -122,9 +132,9 @@ public final class BattleFieldView extends View {
                 drainEvents();
                 updateDisplays();
             }
-            invalidate();
+            postInvalidateOnAnimation();
             if (playing) {
-                handler.postDelayed(this, FRAME_INTERVAL_MS);
+                postOnAnimation(this);
             }
         }
     };
@@ -168,8 +178,18 @@ public final class BattleFieldView extends View {
         this.listener = listener;
     }
 
+    public void setUltimateEffectView(@Nullable UltimateEffectView view) {
+        clearUltimateEffect();
+        ultimateEffectView = view;
+        if (view != null) {
+            view.clear();
+        }
+    }
+
     public void setBattle(BattleResult result) {
-        handler.removeCallbacks(frameTick);
+        removeCallbacks(frameTick);
+        clearUltimateEffect();
+        sheetGeneration++;
         states.clear();
         drawOrder.clear();
         byUid.clear();
@@ -211,8 +231,8 @@ public final class BattleFieldView extends View {
         playing = true;
         paused = false;
         lastFrameMs = SystemClock.uptimeMillis();
-        handler.removeCallbacks(frameTick);
-        handler.post(frameTick);
+        removeCallbacks(frameTick);
+        postOnAnimation(frameTick);
     }
 
     public void pause() {
@@ -223,11 +243,14 @@ public final class BattleFieldView extends View {
         if (playing) {
             paused = false;
             lastFrameMs = SystemClock.uptimeMillis();
+            removeCallbacks(frameTick);
+            postOnAnimation(frameTick);
         }
     }
 
     public void restart() {
-        handler.removeCallbacks(frameTick);
+        removeCallbacks(frameTick);
+        clearUltimateEffect();
         clockMs = 0L;
         nextEvent = 0;
         actionReadyAt = 0L;
@@ -262,14 +285,15 @@ public final class BattleFieldView extends View {
         super.onAttachedToWindow();
         if (playing && !paused) {
             lastFrameMs = SystemClock.uptimeMillis();
-            handler.removeCallbacks(frameTick);
-            handler.post(frameTick);
+            removeCallbacks(frameTick);
+            postOnAnimation(frameTick);
         }
     }
 
     @Override
     protected void onDetachedFromWindow() {
-        handler.removeCallbacks(frameTick);
+        removeCallbacks(frameTick);
+        clearUltimateEffect();
         super.onDetachedFromWindow();
     }
 
@@ -313,14 +337,15 @@ public final class BattleFieldView extends View {
             markReady();
             return;
         }
+        long generation = sheetGeneration;
         for (String sprite : sprites) {
             for (SpriteAnimation animation : PRELOAD) {
-                SpriteArt.loadAnimation(getContext(), sprite, animation, bitmap -> {
-                    if (bitmap != null) {
-                        sheets.put(sheetKey(sprite, animation), new Sheet(
-                                bitmap,
-                                SpriteArt.columns(sprite, animation),
-                                SpriteArt.rows(sprite, animation)));
+                SpriteArt.loadFrames(getContext(), sprite, animation, frames -> {
+                    if (generation != sheetGeneration) {
+                        return;
+                    }
+                    if (frames != null) {
+                        sheets.put(sheetKey(sprite, animation), frames);
                     }
                     pendingSheets--;
                     if (pendingSheets <= 0) {
@@ -346,7 +371,8 @@ public final class BattleFieldView extends View {
             if (event.tick * 100L > limit) {
                 break;
             }
-            if (event.type == BattleEvent.Type.ACTION && clockMs < actionReadyAt) {
+            if ((event.type == BattleEvent.Type.ACTION || event.type == BattleEvent.Type.END)
+                    && clockMs < actionReadyAt) {
                 break;
             }
             nextEvent++;
@@ -360,15 +386,18 @@ public final class BattleFieldView extends View {
 
         switch (event.type) {
             case ACTION:
-                if (source != null) {
+                clearUltimateEffect();
+                if (source != null && source.alive) {
                     SpriteAnimation animation = skillAnimation(event.skillType);
                     long animationMs = animationMs(source, animation);
                     source.play(animation, clockMs);
+                    source.actionUntil = clockMs + animationMs;
                     if (target != null && target.player != source.player) {
                         startLunge(source, target, animationMs);
                     }
                     actionReadyAt = clockMs + animationMs
                             + LUNGE_RETURN_MS + ACTION_PADDING_MS;
+                    startUltimateEffect(source, animation);
                     bannerText = event.skillName;
                     bannerColor = skillColor(event.skillType);
                     bannerUntil = clockMs + BANNER_DURATION_MS;
@@ -378,7 +407,10 @@ public final class BattleFieldView extends View {
                 if (target != null) {
                     target.targetHp = event.hpAfter;
                     target.energy = event.energyAfter;
-                    target.play(SpriteAnimation.HURT, clockMs);
+                    // Reflect/DOT may hit the acting unit in this very event batch.
+                    if (!isInAction(target)) {
+                        target.play(SpriteAnimation.HURT, clockMs);
+                    }
                     target.flashUntil = clockMs + 200L;
                     addFloat(target, "-" + event.value,
                             event.crit ? getContext().getColor(R.color.gold)
@@ -390,7 +422,9 @@ public final class BattleFieldView extends View {
                 if (target != null) {
                     target.targetHp = event.hpAfter;
                     target.energy = event.energyAfter;
-                    target.play(SpriteAnimation.HURT, clockMs);
+                    if (!isInAction(target)) {
+                        target.play(SpriteAnimation.HURT, clockMs);
+                    }
                     addFloat(target, "-" + event.value,
                             getContext().getColor(R.color.element_fire), false);
                 }
@@ -415,6 +449,9 @@ public final class BattleFieldView extends View {
                     target.energy = event.energyAfter;
                     target.shield = event.value;
                     target.shieldUntil = clockMs + 3000L;
+                    if (target.animation == SpriteAnimation.IDLE && !isInAction(target)) {
+                        target.play(SpriteAnimation.DEFEND, clockMs);
+                    }
                     addFloat(target, "+" + event.value,
                             getContext().getColor(R.color.cyan), false);
                 }
@@ -422,8 +459,9 @@ public final class BattleFieldView extends View {
             case STATUS:
                 if (target != null && event.success) {
                     StatusType type = parseStatus(event.detail);
-                    if (type != null) {
+                    if (type != null && target.alive) {
                         target.statuses.put(type, clockMs + STATUS_DURATION_MS);
+                        updateStatusAnimation(target);
                         addFloatAt(target, statusLabel(type), statusColor(type), false,
                                 target.barWidth * 0.85f);
                     }
@@ -431,7 +469,11 @@ public final class BattleFieldView extends View {
                 break;
             case DEATH:
                 if (target != null) {
+                    if (target == effectSource) {
+                        clearUltimateEffect();
+                    }
                     target.alive = false;
+                    target.actionUntil = 0L;
                     target.targetHp = 0;
                     target.shield = 0;
                     target.statuses.clear();
@@ -455,11 +497,76 @@ public final class BattleFieldView extends View {
     }
 
     private long animationMs(UnitState state, SpriteAnimation animation) {
-        Sheet sheet = sheets.get(sheetKey(state.sprite, animation));
-        int frames = sheet != null
-                ? Math.max(1, sheet.columns * sheet.rows)
-                : Math.max(1, animation.frames());
-        return frames * (long) animation.frameMs;
+        SpriteArt.Frames sheet = sheets.get(sheetKey(state.sprite, animation));
+        int frames = sheet != null ? Math.max(1, sheet.frameCount)
+                : SpriteArt.frameCount(state.sprite, animation);
+        return frames * (long) SpriteArt.frameMs(state.sprite, animation);
+    }
+
+    private boolean isInAction(UnitState state) {
+        return state.alive && (clockMs < state.actionUntil || state.lungeStart >= 0L);
+    }
+
+    private void updateStatusAnimation(UnitState state) {
+        if (!state.alive || isInAction(state) || state.animation == SpriteAnimation.VICTORY) {
+            return;
+        }
+        Long stunUntil = state.statuses.get(StatusType.STUN);
+        if (stunUntil != null && stunUntil > clockMs) {
+            if (state.animation != SpriteAnimation.STUN) {
+                state.play(SpriteAnimation.STUN, clockMs);
+            }
+        } else if (state.animation == SpriteAnimation.STUN) {
+            state.play(SpriteAnimation.IDLE, clockMs);
+        }
+    }
+
+    private void startUltimateEffect(UnitState source, SpriteAnimation animation) {
+        if (ultimateEffectView == null || !SpriteArt.usesNewSheets(source.sprite)
+                || (animation != SpriteAnimation.ULTIMA1 && animation != SpriteAnimation.ULTIMA2)) {
+            return;
+        }
+        effectSource = source;
+        effectAnimation = animation;
+        effectStartMs = clockMs;
+        long generation = effectGeneration;
+        SpriteArt.loadEffectFrames(getContext(), source.sprite, animation, frames -> {
+            if (generation != effectGeneration || effectSource != source
+                    || effectAnimation != animation || !isAttachedToWindow() || ended
+                    || !source.alive || clockMs - effectStartMs >= EFFECT_DURATION_MS) {
+                return;
+            }
+            activeEffect = frames;
+            // A late decode joins the CURRENT frame, including when playback is paused.
+            updateUltimateEffect();
+        });
+    }
+
+    private void updateUltimateEffect() {
+        if (effectSource == null) {
+            return;
+        }
+        long elapsed = Math.max(0L, clockMs - effectStartMs);
+        if (elapsed >= EFFECT_DURATION_MS || !effectSource.alive || ended) {
+            clearUltimateEffect();
+            return;
+        }
+        if (ultimateEffectView != null && activeEffect != null) {
+            ultimateEffectView.setFrame(activeEffect.bitmap,
+                    (int) (elapsed / SpriteArt.EFFECT_FRAME_MS), !effectSource.player);
+        }
+    }
+
+    private void clearUltimateEffect() {
+        // Invalidate all pending loads, even if the next action uses the same sprite.
+        effectGeneration++;
+        activeEffect = null;
+        effectSource = null;
+        effectAnimation = null;
+        effectStartMs = 0L;
+        if (ultimateEffectView != null) {
+            ultimateEffectView.clear();
+        }
     }
 
     private void startLunge(UnitState source, UnitState target, long animationMs) {
@@ -476,6 +583,7 @@ public final class BattleFieldView extends View {
     }
 
     private void onBattleEnd(BattleEvent event) {
+        clearUltimateEffect();
         int winner = event.value;
         for (UnitState state : states) {
             if (!state.alive) {
@@ -493,10 +601,8 @@ public final class BattleFieldView extends View {
         for (UnitState state : states) {
             state.updateLunge(clockMs);
             if (!state.animation.loop && !state.animation.holdLast && state.lungeStart < 0L) {
-                int frames = SpriteArt.frames(state.sprite, state.animation);
-                if (clockMs - state.animationStart >= (long) frames * state.animation.frameMs) {
-                    state.animation = SpriteAnimation.IDLE;
-                    state.animationStart = clockMs;
+                if (clockMs - state.animationStart >= animationMs(state, state.animation)) {
+                    state.play(SpriteAnimation.IDLE, clockMs);
                 }
             }
             if (Math.abs(state.hp - state.targetHp) < state.maxHp * 0.002f) {
@@ -517,7 +623,9 @@ public final class BattleFieldView extends View {
             if (state.shield > 0 && clockMs > state.shieldUntil) {
                 state.shield = 0;
             }
+            updateStatusAnimation(state);
         }
+        updateUltimateEffect();
         Iterator<FloatText> iterator = floats.iterator();
         while (iterator.hasNext()) {
             if (clockMs - iterator.next().startMs > FLOAT_DURATION_MS) {
@@ -527,6 +635,7 @@ public final class BattleFieldView extends View {
         if (playbackEndsAt > 0 && clockMs >= playbackEndsAt && !ended) {
             ended = true;
             playing = false;
+            clearUltimateEffect();
             if (listener != null) {
                 listener.onPlaybackEnd();
             }
@@ -579,9 +688,25 @@ public final class BattleFieldView extends View {
                 drawX + shadowWidth * 1.15f,
                 state.baselineY + state.height * 0.05f), glowPaint);
 
-        Sheet sheet = sheets.get(sheetKey(state.sprite, state.animation));
+        SpriteAnimation displayAnimation = state.animation;
+        // Lunge rendering must not reset the action clock.
+        if (SpriteArt.usesNewSheets(state.sprite) && state.animation == SpriteAnimation.ATTACK
+                && state.lungeStart >= 0L && (clockMs < state.lungeStart + state.lungeApproachMs
+                || clockMs >= state.lungeReturnAt)
+                && sheets.containsKey(sheetKey(state.sprite, SpriteAnimation.RUN))) {
+            displayAnimation = SpriteAnimation.RUN;
+        }
+        SpriteArt.Frames sheet = sheets.get(sheetKey(state.sprite, displayAnimation));
+        if (sheet == null && (displayAnimation == SpriteAnimation.STUN
+                || displayAnimation == SpriteAnimation.CONFUSED
+                || displayAnimation == SpriteAnimation.DEFEND)) {
+            // Legacy heroes need not have the newly available state sheets.
+            displayAnimation = SpriteAnimation.IDLE;
+            sheet = sheets.get(sheetKey(state.sprite, displayAnimation));
+        }
         if (sheet != null && !sheet.bitmap.isRecycled()) {
-            int frame = state.frameIndex(clockMs, sheet.columns, sheet.rows);
+            int frame = state.frameIndex(clockMs, displayAnimation, sheet.frameCount,
+                    SpriteArt.frameMs(state.sprite, displayAnimation));
             int column = frame % sheet.columns;
             int row = frame / sheet.columns;
             float cellWidth = sheet.bitmap.getWidth() / (float) sheet.columns;
@@ -741,11 +866,14 @@ public final class BattleFieldView extends View {
         if ("ULTIMATE".equals(skillType)) {
             return SpriteAnimation.ULTIMA1;
         }
+        if ("ULTIMATE2".equals(skillType)) {
+            return SpriteAnimation.ULTIMA2;
+        }
         return SpriteAnimation.ATTACK;
     }
 
     private int skillColor(String skillType) {
-        if ("ULTIMATE".equals(skillType)) {
+        if ("ULTIMATE".equals(skillType) || "ULTIMATE2".equals(skillType)) {
             return getContext().getColor(R.color.gold);
         }
         if ("SKILL2".equals(skillType)) {
@@ -773,6 +901,28 @@ public final class BattleFieldView extends View {
                 return getContext().getString(R.string.status_atk_up);
             case DEF_DOWN:
                 return getContext().getString(R.string.status_def_down);
+            case CURSE:
+                return getContext().getString(R.string.status_curse);
+            case ATK_DOWN:
+                return getContext().getString(R.string.status_atk_down);
+            case DEF_UP:
+                return getContext().getString(R.string.status_def_up);
+            case SLOW:
+                return getContext().getString(R.string.status_slow);
+            case SPD_UP:
+                return getContext().getString(R.string.status_spd_up);
+            case BLIND:
+                return getContext().getString(R.string.status_blind);
+            case SILENCE:
+                return getContext().getString(R.string.status_silence);
+            case EVADE_UP:
+                return getContext().getString(R.string.status_evade_up);
+            case CRIT_UP:
+                return getContext().getString(R.string.status_crit_up);
+            case RES_UP:
+                return getContext().getString(R.string.status_res_up);
+            case REFLECT:
+                return getContext().getString(R.string.status_reflect);
             default:
                 return type.name();
         }
@@ -794,6 +944,21 @@ public final class BattleFieldView extends View {
                 return getContext().getColor(R.color.success);
             case DEF_DOWN:
                 return getContext().getColor(R.color.purple_light);
+            case CURSE:
+            case SILENCE:
+                return getContext().getColor(R.color.purple_light);
+            case ATK_DOWN:
+                return getContext().getColor(R.color.danger);
+            case DEF_UP:
+            case RES_UP:
+            case EVADE_UP:
+            case CRIT_UP:
+            case SPD_UP:
+            case REFLECT:
+                return getContext().getColor(R.color.success);
+            case SLOW:
+            case BLIND:
+                return getContext().getColor(R.color.text_muted);
             default:
                 return getContext().getColor(R.color.text_muted);
         }
@@ -832,18 +997,6 @@ public final class BattleFieldView extends View {
 
     private static String sheetKey(String sprite, SpriteAnimation animation) {
         return (sprite == null ? "" : sprite) + "|" + animation.name();
-    }
-
-    private static final class Sheet {
-        final Bitmap bitmap;
-        final int columns;
-        final int rows;
-
-        Sheet(Bitmap bitmap, int columns, int rows) {
-            this.bitmap = bitmap;
-            this.columns = columns;
-            this.rows = rows;
-        }
     }
 
     private static final class FloatText {
@@ -895,6 +1048,7 @@ public final class BattleFieldView extends View {
         boolean alive;
         SpriteAnimation animation = SpriteAnimation.IDLE;
         long animationStart;
+        long actionUntil;
 
         UnitState(BattleUnit unit) {
             uid = unit.uid;
@@ -957,15 +1111,17 @@ public final class BattleFieldView extends View {
             lungeOffset = lungeTo * (1f - eased);
         }
 
-        int frameIndex(long now, int columns, int rows) {
-            int frames = Math.max(1, columns * rows);
-            long elapsed = Math.max(0L, now - animationStart);
-            int frame = (int) (elapsed / animation.frameMs);
-            if (animation.loop) {
+        int frameIndex(long now, SpriteAnimation displayAnimation, int frameCount, int frameMs) {
+            int frames = Math.max(1, frameCount);
+            long start = displayAnimation == SpriteAnimation.RUN && lungeStart >= 0L
+                    ? (now >= lungeReturnAt ? lungeReturnAt : lungeStart) : animationStart;
+            long elapsed = Math.max(0L, now - start);
+            int frame = (int) (elapsed / Math.max(1, frameMs));
+            if (displayAnimation.loop) {
                 return frame % frames;
             }
             if (frame >= frames) {
-                return animation.holdLast || lungeStart >= 0L ? frames - 1 : 0;
+                return displayAnimation.holdLast || lungeStart >= 0L ? frames - 1 : 0;
             }
             return frame;
         }
@@ -981,6 +1137,7 @@ public final class BattleFieldView extends View {
             statuses.clear();
             animation = SpriteAnimation.IDLE;
             animationStart = now;
+            actionUntil = 0L;
             lungeStart = -1L;
             lungeOffset = 0f;
             lungeTo = 0f;

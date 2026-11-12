@@ -32,7 +32,7 @@ public final class BattleEngine {
         while (tick < input.maxTicks && !isFinished(units)) {
             for (BattleUnit unit : units) {
                 if (unit.alive) {
-                    unit.gauge += unit.spd;
+                    unit.gauge += (int) ((long) unit.spd * unit.speedBp() / 10000L);
                 }
             }
             while (true) {
@@ -109,26 +109,51 @@ public final class BattleEngine {
         }
 
         boolean support = skill.isSupport();
+        boolean ultimate = skill.isUltimate();
+        int energyAfter = ultimate
+                ? 0
+                : Math.min(BattleUnit.MAX_ENERGY, actor.energy + skill.energyGain);
+
+        if (skill.selfHpCostBp > 0) {
+            int cost = (int) ((long) actor.maxHp * skill.selfHpCostBp / 10000L);
+            cost = Math.max(0, Math.min(cost, actor.hp - 1));
+            if (cost > 0) {
+                actor.hp -= cost;
+                actor.damageTaken += cost;
+                events.add(BattleEvent.hit(tick, actor, actor, skill, cost, false));
+            }
+        }
+
         List<BattleUnit> targets = null;
+        List<BattleUnit> allies = null;
         BattleUnit primary;
         if (support) {
-            primary = pickAllyLowest(actor, all);
+            if (skill.target == Skill.Target.ALLY_ALL) {
+                allies = livingAllies(actor, all);
+                primary = pickLowestHp(allies);
+            } else if (skill.target == Skill.Target.ALLY_SELF) {
+                primary = actor;
+            } else {
+                primary = pickAllyLowest(actor, all);
+            }
         } else {
             targets = pickTargets(actor, all, skill, strategy);
             primary = targets.isEmpty() ? null : targets.get(0);
         }
 
-        int energyAfter = skill.type == Skill.Type.ULTIMATE
-                ? 0
-                : Math.min(BattleUnit.MAX_ENERGY, actor.energy + skill.energyGain);
         events.add(BattleEvent.action(tick, actor, skill, primary, energyAfter));
 
+        long dealtBefore = actor.damageDealt;
+
         if (support) {
-            if (primary != null) {
+            if (allies != null) {
+                for (BattleUnit ally : allies) {
+                    applySupport(actor, ally, skill, events, tick, actionIndex);
+                }
+            } else if (primary != null) {
                 applySupport(actor, primary, skill, events, tick, actionIndex);
             }
         } else if (targets != null && !targets.isEmpty()) {
-            boolean crit = rng.nextBp() < clamp(actor.critRate, 0, CRIT_CAP_BP);
             for (int i = 0; i < targets.size(); i++) {
                 BattleUnit target = targets.get(i);
                 if (!target.alive) {
@@ -138,9 +163,28 @@ public final class BattleEngine {
                     }
                     targets.set(i, target);
                 }
-                resolveDamage(actor, target, skill, rng, crit, events, tick);
+                for (int hit = 0; hit < skill.hits; hit++) {
+                    if (!target.alive) {
+                        break;
+                    }
+                    boolean crit = rng.nextBp() < clamp(
+                            actor.critRate + actor.critBonusBp(), 0, CRIT_CAP_BP);
+                    resolveDamage(actor, target, skill, rng, crit, events, tick);
+                }
                 if (target.alive) {
                     applyEffects(actor, target, skill, rng, events, tick, actionIndex);
+                    if (skill.drainEnergyBp > 0) {
+                        int amount = Math.min(target.energy,
+                                BattleUnit.MAX_ENERGY * skill.drainEnergyBp / 10000);
+                        if (amount > 0) {
+                            target.energy -= amount;
+                            actor.energy = Math.min(BattleUnit.MAX_ENERGY,
+                                    actor.energy + amount);
+                        }
+                    }
+                    if (skill.stripBuff) {
+                        stealBuff(actor, target);
+                    }
                 }
             }
         }
@@ -150,6 +194,30 @@ public final class BattleEngine {
                 actor, actionIndex)) {
             events.add(BattleEvent.status(tick, actor, actor, skill.selfEffect,
                     skill.selfTurns, true));
+        }
+        if (skill.selfEffect2 != null
+                && applyStatus(actor, skill.selfEffect2, skill.selfValue2, skill.selfTurns2,
+                actor, actionIndex)) {
+            events.add(BattleEvent.status(tick, actor, actor, skill.selfEffect2,
+                    skill.selfTurns2, true));
+        }
+
+        applyTeamAura(actor, skill, all, events, tick, actionIndex);
+
+        if (skill.cleanseTeam) {
+            cleanseTeam(actor, all);
+        }
+
+        long dealt = actor.damageDealt - dealtBefore;
+        if (skill.selfHealBpOfDamage > 0 && dealt > 0) {
+            int amount = (int) (dealt * skill.selfHealBpOfDamage / 10000L);
+            int before = actor.hp;
+            actor.hp = Math.min(actor.maxHp, actor.hp + amount);
+            int actual = actor.hp - before;
+            actor.healingDone += actual;
+            if (actual > 0) {
+                events.add(BattleEvent.heal(tick, actor, actor, skill, actual));
+            }
         }
 
         actor.energy = Math.min(BattleUnit.MAX_ENERGY, actor.energy + skill.energyGain);
@@ -164,17 +232,123 @@ public final class BattleEngine {
         } else if (skill.type == Skill.Type.SKILL2) {
             actor.cooldown2 = skill.cooldown;
         }
-        if (skill.type == Skill.Type.ULTIMATE) {
+        if (ultimate) {
             actor.energy = 0;
+            if (skill.type == Skill.Type.ULTIMATE2) {
+                actor.ultimate2Next = false;
+            } else {
+                actor.ultimate2Next = actor.ultimate2 != null;
+            }
         }
 
         decrementEffects(actor, actionIndex);
     }
 
+    private static List<BattleUnit> livingAllies(BattleUnit actor, List<BattleUnit> all) {
+        List<BattleUnit> allies = new ArrayList<>();
+        for (BattleUnit unit : all) {
+            if (unit.alive && unit.team == actor.team) {
+                allies.add(unit);
+            }
+        }
+        return allies;
+    }
+
+    private static void stealBuff(BattleUnit actor, BattleUnit target) {
+        Iterator<StatusEffect> iterator = target.effects.iterator();
+        while (iterator.hasNext()) {
+            StatusEffect effect = iterator.next();
+            if (!effect.isBuff()) {
+                continue;
+            }
+            iterator.remove();
+            actor.effects.add(new StatusEffect(effect.type, effect.value,
+                    Math.max(1, effect.turns), 0));
+            return;
+        }
+    }
+
+    private static void cleanseTeam(BattleUnit actor, List<BattleUnit> all) {
+        for (BattleUnit unit : all) {
+            if (!unit.alive || unit.team != actor.team) {
+                continue;
+            }
+            Iterator<StatusEffect> iterator = unit.effects.iterator();
+            while (iterator.hasNext()) {
+                StatusEffect effect = iterator.next();
+                if (!effect.isBuff() && effect.type != StatusType.STUN) {
+                    iterator.remove();
+                }
+            }
+        }
+    }
+
+    private static void applyTeamAura(BattleUnit actor, Skill skill, List<BattleUnit> all,
+                                      List<BattleEvent> events, int tick, int actionIndex) {
+        boolean heal = !skill.isSupport() && skill.teamHealMaxHpBp > 0;
+        boolean shield = !skill.isSupport() && skill.teamShieldMaxHpBp > 0;
+        boolean aura = skill.teamEffect != null || skill.teamEffect2 != null;
+        if (!heal && !shield && !aura) {
+            return;
+        }
+        for (BattleUnit ally : all) {
+            if (!ally.alive || ally.team != actor.team) {
+                continue;
+            }
+            if (heal) {
+                int amount = (int) ((long) ally.maxHp * skill.teamHealMaxHpBp / 10000L);
+                int before = ally.hp;
+                ally.hp = Math.min(ally.maxHp, ally.hp + amount);
+                int actual = ally.hp - before;
+                actor.healingDone += actual;
+                if (actual > 0) {
+                    events.add(BattleEvent.heal(tick, actor, ally, skill, actual));
+                }
+            }
+            if (shield) {
+                int amount = (int) ((long) ally.maxHp * skill.teamShieldMaxHpBp / 10000L);
+                int cap = ally.maxHp * SHIELD_MAX_HP_BP / 10000;
+                int before = ally.shield;
+                ally.shield = Math.min(cap, ally.shield + amount);
+                ally.shieldTurns = 3;
+                ally.shieldAppliedAction = actionIndex;
+                if (ally.shield > before) {
+                    events.add(BattleEvent.shield(tick, actor, ally, skill,
+                            ally.shield - before));
+                }
+            }
+            if (skill.teamEffect != null
+                    && applyStatus(ally, skill.teamEffect, skill.teamValue,
+                    skill.teamTurns, actor, actionIndex)) {
+                events.add(BattleEvent.status(tick, actor, ally, skill.teamEffect,
+                        skill.teamTurns, true));
+            }
+            if (skill.teamEffect2 != null
+                    && applyStatus(ally, skill.teamEffect2, skill.teamValue2,
+                    skill.teamTurns2, actor, actionIndex)) {
+                events.add(BattleEvent.status(tick, actor, ally, skill.teamEffect2,
+                        skill.teamTurns2, true));
+            }
+        }
+    }
+
     private static Skill chooseSkill(BattleUnit actor, Strategy strategy,
                                      List<BattleUnit> all) {
-        if (actor.energy >= BattleUnit.MAX_ENERGY && actor.ultimate != null) {
-            return actor.ultimate;
+        if (actor.silenced()) {
+            return actor.basic;
+        }
+        if (actor.energy >= BattleUnit.MAX_ENERGY) {
+            Skill chosen = null;
+            if (actor.ultimate2Next && actor.ultimate2 != null) {
+                chosen = actor.ultimate2;
+            } else if (actor.ultimate != null) {
+                chosen = actor.ultimate;
+            } else if (actor.ultimate2 != null) {
+                chosen = actor.ultimate2;
+            }
+            if (chosen != null) {
+                return chosen;
+            }
         }
         if (strategy == Strategy.PROTECT_ALLY
                 && "support".equals(actor.role)
@@ -224,6 +398,20 @@ public final class BattleEngine {
                 if (unit.slot == row) {
                     result.add(unit);
                 }
+            }
+            return result;
+        }
+        if (skill.target == Skill.Target.ENEMY_LOWEST) {
+            BattleUnit lowest = pickLowestHp(enemies);
+            if (lowest != null) {
+                result.add(lowest);
+            }
+            return result;
+        }
+        if (skill.target == Skill.Target.ENEMY_HIGHEST) {
+            BattleUnit highest = pickHighestHp(enemies);
+            if (highest != null) {
+                result.add(highest);
             }
             return result;
         }
@@ -338,6 +526,20 @@ public final class BattleEngine {
         return best;
     }
 
+    private static BattleUnit pickHighestHp(List<BattleUnit> candidates) {
+        BattleUnit best = null;
+        for (BattleUnit unit : candidates) {
+            if (unit == null || !unit.alive) {
+                continue;
+            }
+            if (best == null || unit.hpPctBp() > best.hpPctBp()
+                    || (unit.hpPctBp() == best.hpPctBp() && unit.slot < best.slot)) {
+                best = unit;
+            }
+        }
+        return best;
+    }
+
     private static BattleUnit pickAllyLowest(BattleUnit actor, List<BattleUnit> all) {
         List<BattleUnit> allies = new ArrayList<>();
         for (BattleUnit unit : all) {
@@ -360,7 +562,8 @@ public final class BattleEngine {
 
     private static void resolveDamage(BattleUnit actor, BattleUnit target, Skill skill,
                                       Rng rng, boolean crit, List<BattleEvent> events, int tick) {
-        int hitChance = clamp(9800 + actor.acc - target.eva, 6500, 9800);
+        int hitChance = clamp(9800 + actor.acc - actor.blindBp()
+                - target.eva - target.dodgeBonusBp(), 6500, 9800);
         if (rng.nextBp() >= hitChance) {
             events.add(BattleEvent.miss(tick, actor, target, skill));
             target.energy = Math.min(BattleUnit.MAX_ENERGY, target.energy + 5);
@@ -368,8 +571,14 @@ public final class BattleEngine {
         }
 
         int targetDef = target.effectiveDef();
+        if (skill.armorPierceBp > 0) {
+            targetDef = (int) ((long) targetDef * (10000L - skill.armorPierceBp) / 10000L);
+        }
         long raw = (long) actor.effectiveAtk() * skill.power / 10000L;
         raw = raw * skill.scaleBp / 10000L;
+        if (skill.executeBp > 0 && target.hpPctBp() < 3000) {
+            raw = raw * (10000L + skill.executeBp) / 10000L;
+        }
         long mitigationBp = (long) targetDef * 10000L
                 / (targetDef + 400L + 20L * actor.level);
         mitigationBp = Math.min(mitigationBp, 9500L);
@@ -390,6 +599,19 @@ public final class BattleEngine {
 
         int finalDamage = (int) Math.max(1L, Math.min(damage, (long) Integer.MAX_VALUE));
         applyDamage(actor, target, skill, finalDamage, crit, events, tick);
+
+        int reflectBp = target.reflectBp();
+        if (reflectBp > 0 && actor.alive && target.alive) {
+            int reflected = (int) ((long) finalDamage * reflectBp / 10000L);
+            if (reflected > 0) {
+                actor.hp = Math.max(0, actor.hp - reflected);
+                actor.damageTaken += reflected;
+                events.add(BattleEvent.hit(tick, target, actor, skill, reflected, false));
+                if (actor.hp == 0) {
+                    kill(actor, events, tick);
+                }
+            }
+        }
     }
 
     private static void applyDamage(BattleUnit actor, BattleUnit target, Skill skill,
@@ -469,21 +691,28 @@ public final class BattleEngine {
 
     private static void applyEffects(BattleUnit actor, BattleUnit target, Skill skill,
                                      Rng rng, List<BattleEvent> events, int tick, int actionIndex) {
-        if (skill.effect == null) {
+        applyEffect(actor, target, skill.effect, skill.effectChance, skill.effectTurns,
+                skill.effectValue, rng, events, tick, actionIndex);
+        applyEffect(actor, target, skill.effect2, skill.effect2Chance, skill.effect2Turns,
+                skill.effect2Value, rng, events, tick, actionIndex);
+    }
+
+    private static void applyEffect(BattleUnit actor, BattleUnit target, StatusType type,
+                                    int chanceBp, int turns, int value, Rng rng,
+                                    List<BattleEvent> events, int tick, int actionIndex) {
+        if (type == null) {
             return;
         }
-        int chance = clamp((int) ((long) skill.effectChance
+        int chance = clamp((int) ((long) chanceBp
                 * (10000L - target.effectiveRes()) / 10000L), 0, 9500);
         boolean success = rng.nextBp() < chance;
         if (!success) {
             return;
         }
-        if (!applyStatus(target, skill.effect, skill.effectValue, skill.effectTurns,
-                actor, actionIndex)) {
+        if (!applyStatus(target, type, value, turns, actor, actionIndex)) {
             return;
         }
-        events.add(BattleEvent.status(tick, actor, target, skill.effect,
-                skill.effectTurns, true));
+        events.add(BattleEvent.status(tick, actor, target, type, turns, true));
     }
 
     private static boolean applyStatus(BattleUnit target, StatusType type, int value,
@@ -501,6 +730,18 @@ public final class BattleEngine {
             }
             int perTurn = (int) ((long) source.effectiveAtk()
                     * (type == StatusType.BURN ? 500L : 400L) / 10000L);
+            StatusEffect effect = new StatusEffect(type, Math.max(1, perTurn),
+                    Math.max(1, turns), actionIndex);
+            effect.source = source;
+            target.effects.add(effect);
+            return true;
+        }
+        if (type == StatusType.CURSE) {
+            if (target.statusCount(type) >= MAX_EFFECT_STACKS) {
+                return false;
+            }
+            int perTurn = (int) ((long) target.maxHp
+                    * Math.max(1, value) / 10000L);
             StatusEffect effect = new StatusEffect(type, Math.max(1, perTurn),
                     Math.max(1, turns), actionIndex);
             effect.source = source;
@@ -542,6 +783,28 @@ public final class BattleEngine {
             ally.shieldAppliedAction = actionIndex;
             events.add(BattleEvent.shield(tick, actor, ally, skill,
                     Math.max(0, ally.shield - before)));
+        }
+        if (skill.teamHealMaxHpBp > 0) {
+            int amount = (int) ((long) ally.maxHp * skill.teamHealMaxHpBp / 10000L);
+            int before = ally.hp;
+            ally.hp = Math.min(ally.maxHp, ally.hp + amount);
+            int actual = ally.hp - before;
+            actor.healingDone += actual;
+            if (actual > 0) {
+                events.add(BattleEvent.heal(tick, actor, ally, skill, actual));
+            }
+        }
+        if (skill.teamShieldMaxHpBp > 0) {
+            int amount = (int) ((long) ally.maxHp * skill.teamShieldMaxHpBp / 10000L);
+            int cap = ally.maxHp * SHIELD_MAX_HP_BP / 10000;
+            int before = ally.shield;
+            ally.shield = Math.min(cap, ally.shield + amount);
+            ally.shieldTurns = 3;
+            ally.shieldAppliedAction = actionIndex;
+            if (ally.shield > before) {
+                events.add(BattleEvent.shield(tick, actor, ally, skill,
+                        ally.shield - before));
+            }
         }
         if (skill.effect != null
                 && applyStatus(ally, skill.effect, skill.effectValue, skill.effectTurns,

@@ -317,6 +317,17 @@
     <string name="status_stun">Stun</string>
     <string name="status_atk_up">ATK+</string>
     <string name="status_def_down">DEF−</string>
+    <string name="status_curse">Curse</string>
+    <string name="status_atk_down">ATK−</string>
+    <string name="status_def_up">DEF+</string>
+    <string name="status_slow">Slow</string>
+    <string name="status_spd_up">Haste</string>
+    <string name="status_blind">Blind</string>
+    <string name="status_silence">Silence</string>
+    <string name="status_evade_up">Dodge+</string>
+    <string name="status_crit_up">Crit+</string>
+    <string name="status_res_up">Res+</string>
+    <string name="status_reflect">Reflect</string>
 
     <string name="home_summon">Summon</string>
     <string name="home_shop">Shop</string>
@@ -644,4 +655,32 @@
     <string name="ranking_position">#%1$d</string>
     <string name="ranking_self_row">Rank #%1$d · %2$s points</string>
     <string name="ranking_outside">Outside the top 20 · %1$s points</string>
+
+    <string name="settings_title">Settings</string>
+    <string name="settings_subtitle">Audio, notifications, and app info</string>
+    <string name="settings_audio_title">Sound Effects</string>
+    <string name="settings_audio_desc">Enable battle and interface sound effects.</string>
+    <string name="settings_audio_test">Test Sound</string>
+    <string name="settings_notif_title">Notifications</string>
+    <string name="settings_notif_desc">Energy full and idle reward reminders.</string>
+    <string name="settings_notif_test">Test Notification</string>
+    <string name="settings_notif_allow">Allow Notifications</string>
+    <string name="settings_about_title">About</string>
+    <string name="settings_about_note">The Myth is made by Zhaf Media.</string>
+
+    <string name="notifications_channel">The Myth Reminders</string>
+    <string name="notifications_channel_desc">Idle rewards, daily login, missions, events, and mail notifications.</string>
+    <string name="notif_idle_title">Idle Reward Ready</string>
+    <string name="notif_idle_text">Open The Myth to claim your idle reward.</string>
+    <string name="notif_daily_title">Daily Login</string>
+    <string name="notif_daily_text">Today\'s login reward has not been claimed.</string>
+    <string name="notif_mission_title">Daily Mission Complete</string>
+    <string name="notif_mission_text">A daily mission is ready to claim.</string>
+    <string name="notif_event_title">Event: %1$s</string>
+    <string name="notif_mail_title">New Mail</string>
+
+    <plurals name="notif_mail_text">
+        <item quantity="one">%1$d unread mail.</item>
+        <item quantity="other">%1$d unread mails.</item>
+    </plurals>
 </resources>

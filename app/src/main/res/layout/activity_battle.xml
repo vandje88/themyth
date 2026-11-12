@@ -180,6 +180,18 @@
         </LinearLayout>
     </LinearLayout>
 
+    <zhaf.media.themyth.ui.battle.UltimateEffectView
+        android:id="@+id/ultimateEffect"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:clickable="false"
+        android:focusable="false"
+        android:importantForAccessibility="no"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
     <LinearLayout
         android:id="@+id/overlayLoading"
         android:layout_width="0dp"

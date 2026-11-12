@@ -1,0 +1,229 @@
+{
+  "version": 1,
+  "id": "nyai_roro_kidul",
+  "name": "Nyai Roro Kidul",
+  "sprite": "nyairorokidul",
+  "facing": "right",
+  "alpha": "straight",
+  "order": "row-major",
+  "pivot": {
+    "x": 0.5,
+    "y": 1
+  },
+  "totalCharacterFrames": 236,
+  "totalEffectFrames": 88,
+  "production": "AI-generated keyposes, silhouette-morph inbetweens, mesh-deformed secondary motion, procedural magical VFX. Not 236 independently hand-drawn poses.",
+  "generationBrief": {
+    "useCase": "2D Android fantasy RPG production sprite keypose atlas",
+    "subject": "Southern ocean queen, long black hair, gold Javanese crown, emerald turquoise kebaya, batik skirt, cyan ocean shawl.",
+    "style": "Detailed richly shaded hand-painted premium fantasy sprites; realistic heroic adult proportions; identical face/costume each pose.",
+    "backdrop": "#FF00FF",
+    "composition": "1024x1536, 4x4 equal cells; sixteen full-body poses facing right; idle, run, attack, guard, hurt, stun, confused, victory, dead, skills and ultimate keyposes; no text."
+  },
+  "animations": {
+    "idle": {
+      "file": "idle.png",
+      "frameCount": 8,
+      "columns": 4,
+      "rows": 2,
+      "frameWidth": 192,
+      "frameHeight": 256,
+      "frameMs": 80,
+      "loop": true,
+      "holdLast": false,
+      "uniqueFrames": 8
+    },
+    "run": {
+      "file": "run.png",
+      "frameCount": 8,
+      "columns": 4,
+      "rows": 2,
+      "frameWidth": 192,
+      "frameHeight": 256,
+      "frameMs": 65,
+      "loop": true,
+      "holdLast": false,
+      "uniqueFrames": 8
+    },
+    "attack": {
+      "file": "attack.png",
+      "frameCount": 8,
+      "columns": 4,
+      "rows": 2,
+      "frameWidth": 192,
+      "frameHeight": 256,
+      "frameMs": 65,
+      "loop": false,
+      "holdLast": false,
+      "uniqueFrames": 7
+    },
+    "defend": {
+      "file": "defend.png",
+      "frameCount": 8,
+      "columns": 4,
+      "rows": 2,
+      "frameWidth": 192,
+      "frameHeight": 256,
+      "frameMs": 80,
+      "loop": false,
+      "holdLast": false,
+      "uniqueFrames": 7
+    },
+    "hurt": {
+      "file": "hurt.png",
+      "frameCount": 8,
+      "columns": 4,
+      "rows": 2,
+      "frameWidth": 192,
+      "frameHeight": 256,
+      "frameMs": 65,
+      "loop": false,
+      "holdLast": false,
+      "uniqueFrames": 7
+    },
+    "stun": {
+      "file": "stun.png",
+      "frameCount": 8,
+      "columns": 4,
+      "rows": 2,
+      "frameWidth": 192,
+      "frameHeight": 256,
+      "frameMs": 80,
+      "loop": true,
+      "holdLast": false,
+      "uniqueFrames": 8
+    },
+    "confused": {
+      "file": "confused.png",
+      "frameCount": 8,
+      "columns": 4,
+      "rows": 2,
+      "frameWidth": 192,
+      "frameHeight": 256,
+      "frameMs": 80,
+      "loop": true,
+      "holdLast": false,
+      "uniqueFrames": 8
+    },
+    "victory": {
+      "file": "victory.png",
+      "frameCount": 12,
+      "columns": 4,
+      "rows": 3,
+      "frameWidth": 192,
+      "frameHeight": 256,
+      "frameMs": 80,
+      "loop": true,
+      "holdLast": false,
+      "uniqueFrames": 12
+    },
+    "dead": {
+      "file": "dead.png",
+      "frameCount": 8,
+      "columns": 4,
+      "rows": 2,
+      "frameWidth": 192,
+      "frameHeight": 256,
+      "frameMs": 80,
+      "loop": false,
+      "holdLast": true,
+      "uniqueFrames": 8
+    },
+    "skill1": {
+      "file": "skill1.png",
+      "frameCount": 36,
+      "columns": 6,
+      "rows": 6,
+      "frameWidth": 192,
+      "frameHeight": 256,
+      "frameMs": 45,
+      "loop": false,
+      "holdLast": false,
+      "uniqueFrames": 35
+    },
+    "skill2": {
+      "file": "skill2.png",
+      "frameCount": 36,
+      "columns": 6,
+      "rows": 6,
+      "frameWidth": 192,
+      "frameHeight": 256,
+      "frameMs": 45,
+      "loop": false,
+      "holdLast": false,
+      "uniqueFrames": 35
+    },
+    "ultima1": {
+      "file": "ultima1.png",
+      "frameCount": 44,
+      "columns": 4,
+      "rows": 11,
+      "frameWidth": 192,
+      "frameHeight": 256,
+      "frameMs": 50,
+      "loop": false,
+      "holdLast": false,
+      "uniqueFrames": 43
+    },
+    "ultima2": {
+      "file": "ultima2.png",
+      "frameCount": 44,
+      "columns": 4,
+      "rows": 11,
+      "frameWidth": 192,
+      "frameHeight": 256,
+      "frameMs": 50,
+      "loop": false,
+      "holdLast": false,
+      "uniqueFrames": 43
+    }
+  },
+  "effects": {
+    "ultima1": {
+      "file": "effects/ultima1.png",
+      "frameCount": 44,
+      "columns": 4,
+      "rows": 11,
+      "frameWidth": 320,
+      "frameHeight": 180,
+      "frameMs": 50,
+      "fullscreen": true
+    },
+    "ultima2": {
+      "file": "effects/ultima2.png",
+      "frameCount": 44,
+      "columns": 4,
+      "rows": 11,
+      "frameWidth": 320,
+      "frameHeight": 180,
+      "frameMs": 50,
+      "fullscreen": true
+    }
+  },
+  "abilities": [
+    {
+      "animation": "skill1",
+      "name": "Gelombang Mistis",
+      "description": "Ombak energi gaib menembus musuh terdepan dan mengurangi attack speed.",
+      "mechanicsSource": "Requested design specification; battle mechanics remain defined by SkillFactory and the turn-based engine."
+    },
+    {
+      "animation": "skill2",
+      "name": "Mahkota Samudra",
+      "description": "Perisai air ke rekan satu tim dengan HP terendah.",
+      "mechanicsSource": "Requested design specification; battle mechanics remain defined by SkillFactory and the turn-based engine."
+    },
+    {
+      "animation": "ultima1",
+      "name": "Tsunami Pantai Selatan",
+      "description": "Dinding air raksasa menyapu seluruh musuh; slow dan magic damage berkala.",
+      "mechanicsSource": "Requested design specification; battle mechanics remain defined by SkillFactory and the turn-based engine."
+    },
+    {
+      "animation": "ultima2",
+      "name": "Gerbang Istana Laut Selatan",
+      "description": "Seluruh musuh; massive magic damage; movement speed -40% selama 5 detik; memulihkan HP tim 15%. Gerbang istana, pusaran air, ikan mistis, gelombang energi.",
+      "mechanicsSource": "Requested design specification; battle mechanics remain defined by SkillFactory and the turn-based engine."
+    }
+  ]
+}

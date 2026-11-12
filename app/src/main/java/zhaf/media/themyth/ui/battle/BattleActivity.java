@@ -34,12 +34,14 @@ import zhaf.media.themyth.battle.engine.BattleInput;
 import zhaf.media.themyth.battle.engine.BattleResult;
 import zhaf.media.themyth.core.UiErrors;
 import zhaf.media.themyth.data.arena.ArenaBattle;
+import zhaf.media.themyth.data.event.EventCatalog;
 import zhaf.media.themyth.data.meta.MissionCatalog;
 import zhaf.media.themyth.data.model.EquipmentInstance;
 import zhaf.media.themyth.data.model.FormationState;
 import zhaf.media.themyth.data.model.PlayerState;
 import zhaf.media.themyth.data.model.RosterChar;
 import zhaf.media.themyth.data.repository.ArenaRepository;
+import zhaf.media.themyth.data.repository.EventRepository;
 import zhaf.media.themyth.data.repository.GuildRepository;
 import zhaf.media.themyth.data.repository.MetaRepository;
 import zhaf.media.themyth.data.repository.ProgressionRepository;
@@ -134,6 +136,7 @@ public class BattleActivity extends AppCompatActivity implements BattleFieldView
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         binding = ActivityBattleBinding.inflate(getLayoutInflater());
+        binding.battleField.setUltimateEffectView(binding.ultimateEffect);
         setContentView(binding.getRoot());
 
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
@@ -415,6 +418,8 @@ public class BattleActivity extends AppCompatActivity implements BattleFieldView
                         MetaRepository.addMissionProgress(uid, MissionCatalog.WEEKLY_BOSS, 1,
                                 System.currentTimeMillis());
                         MetaRepository.recordBossAttack(uid);
+                        EventRepository.addProgress(uid, EventCatalog.MISSION_BOSS, 1,
+                                System.currentTimeMillis());
                         binding.overlayError.setVisibility(View.GONE);
                         binding.overlayLoading.setVisibility(View.GONE);
                         binding.tvBattleState.setText(R.string.battle_state_running);
@@ -488,6 +493,7 @@ public class BattleActivity extends AppCompatActivity implements BattleFieldView
             long now = System.currentTimeMillis();
             MetaRepository.addMissionProgress(uid, MissionCatalog.DAILY_WIN, 1, now);
             MetaRepository.addMissionProgress(uid, MissionCatalog.WEEKLY_WIN, 1, now);
+            EventRepository.addProgress(uid, EventCatalog.MISSION_WIN, 1, now);
         }
         detachObservers();
         binding.overlayEmpty.setVisibility(View.GONE);
@@ -610,10 +616,12 @@ public class BattleActivity extends AppCompatActivity implements BattleFieldView
         long now = System.currentTimeMillis();
         MetaRepository.addMissionProgress(uid, MissionCatalog.DAILY_ARENA, 1, now);
         MetaRepository.recordRating(uid, rating);
+        EventRepository.addProgress(uid, EventCatalog.MISSION_ARENA, 1, now);
         if (result.playerWin() && !result.draw()) {
             MetaRepository.addMissionProgress(uid, MissionCatalog.DAILY_WIN, 1, now);
             MetaRepository.addMissionProgress(uid, MissionCatalog.WEEKLY_WIN, 1, now);
             MetaRepository.addMissionProgress(uid, MissionCatalog.WEEKLY_ARENA_WIN, 1, now);
+            EventRepository.addProgress(uid, EventCatalog.MISSION_WIN, 1, now);
         }
     }
 

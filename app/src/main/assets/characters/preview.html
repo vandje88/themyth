@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Myth — Character Animation Studio</title>
+<style>
+:root{color-scheme:dark;--gold:#e9bd76;--muted:#8e94ab;--line:#292f43}*{box-sizing:border-box}body{margin:0;background:#090d17;color:#edf0fa;font:14px system-ui,sans-serif}header{padding:23px 30px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}h1{font:600 24px Georgia,serif;letter-spacing:3px;margin:0;color:var(--gold)}header small{color:var(--muted);letter-spacing:2px;font-size:10px}.badge{padding:7px 12px;border:1px solid #4c3b26;border-radius:30px;color:var(--gold);font-size:11px}.layout{display:grid;grid-template-columns:230px minmax(0,1fr);max-width:1440px;margin:auto;min-height:calc(100vh - 80px)}aside,main{min-width:0}aside{padding:24px 16px;border-right:1px solid var(--line)}.eyebrow{color:var(--muted);letter-spacing:2px;font-size:10px;margin:0 0 14px}#heroes{display:grid;gap:7px}.hero{display:flex;align-items:center;gap:12px;padding:6px 9px;background:#111725;border:1px solid transparent;border-radius:7px;color:#a9b1c7;cursor:pointer;text-align:left}.hero:hover{background:#192133}.hero.active{border-color:#8f6b36;background:#221e1c;color:#ffe5ac}.hero img{width:36px;height:43px;object-fit:cover;object-position:top}.hero span{font-size:12px;font-weight:600}.hero small{display:block;font-size:9px;color:var(--muted);margin-top:3px}main{padding:25px 30px}.heading{display:flex;justify-content:space-between;align-items:end;margin-bottom:18px}h2{margin:0;font:500 28px Georgia,serif}.heading p{margin:7px 0 0;color:var(--muted);font-size:12px}.meta{font-size:11px;color:var(--gold);text-align:right}.stage{position:relative;overflow:hidden;border:1px solid #343c54;border-radius:12px;background:#101b2f}canvas{display:block;width:100%;aspect-ratio:16/9}.stage-label{position:absolute;top:18px;left:21px;color:#ccd2e0;letter-spacing:3px;font-size:10px;pointer-events:none}.framebadge{position:absolute;right:18px;top:16px;font:11px monospace;background:#080c16c9;padding:8px 10px;border-radius:5px;color:var(--gold)}.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:16px 0}button,select{font:inherit}select,.control{border:1px solid var(--line);background:#151c2c;color:#d8deed;border-radius:6px;padding:9px 12px;cursor:pointer}.control.primary{color:#19130c;background:var(--gold);border-color:var(--gold);font-weight:700}label{color:var(--muted);font-size:12px;display:flex;gap:7px;align-items:center}.scrub{display:flex;gap:15px;align-items:center;color:var(--muted);font-size:11px}input[type=range]{flex:1;accent-color:var(--gold)}.ability{padding:18px 20px;border:1px solid var(--line);border-radius:8px;margin-top:18px;background:#101622}.ability h3{font:500 18px Georgia,serif;margin:0 0 9px;color:var(--gold)}.ability p{font-size:12px;line-height:1.7;color:#a3adc3;margin:0}.animations{display:flex;gap:7px;flex-wrap:wrap;margin-top:18px}.animations button{padding:6px 9px;font:10px monospace;color:var(--muted);background:#111725;border:1px solid var(--line);border-radius:4px;cursor:pointer}.animations button.active{border-color:var(--gold);color:var(--gold)}footer{margin-top:22px;font-size:10px;line-height:1.8;color:#67748e}#error{color:#ff9292;margin-top:14px}@media(max-width:800px){.layout{grid-template-columns:1fr}aside{border-right:0;padding:15px}#heroes{display:flex;overflow:auto}.hero{min-width:145px}.hero img{width:30px;height:36px}main{padding:15px}header{padding:18px}.badge{display:none}.heading h2{font-size:22px}}
+</style>
+</head>
+<body>
+<header><div><h1>THE MYTH</h1><small>CHARACTER ANIMATION STUDIO</small></div><span class="badge">10 KARAKTER · 2.360 FRAME + 880 FRAME VFX</span></header>
+<div class="layout"><aside><p class="eyebrow">NUSANTARA LEGENDS</p><div id="heroes"></div></aside><main>
+<div class="heading"><div><h2 id="title">Memuat karakter…</h2><p id="subtitle">Atlas animasi transparan · Preview real-time</p></div><div class="meta" id="meta"></div></div>
+<div class="stage"><canvas id="canvas" width="960" height="540" aria-label="Preview animasi karakter dan efek magis"></canvas><span class="stage-label" id="stageLabel">IDLE</span><span class="framebadge" id="frameBadge"></span></div>
+<div class="toolbar"><button class="control primary" id="play">Jeda</button><select id="animation" aria-label="Animasi"></select><select id="speed" aria-label="Kecepatan"><option value="0.5">0,5×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="3">3×</option></select><label><input id="effects" type="checkbox" checked>Efek ultimate</label><label><input id="mirror" type="checkbox">Hadap kiri</label><select id="background" aria-label="Latar"><option value="arena">Arena</option><option value="checker">Transparansi</option></select></div>
+<div class="scrub"><span>FRAME</span><input id="frame" type="range" min="0" max="7" value="0" aria-label="Pilih frame"><span id="frameCount">1 / 8</span></div>
+<div class="animations" id="chips"></div>
+<div class="ability"><h3 id="abilityName">Idle — siap bertarung</h3><p id="abilityText"></p></div><p id="error" role="alert"></p>
+<footer>PNG RGBA · urutan kiri → kanan, atas → bawah · sprite 192 × 256 px · ultimate VFX 320 × 180 px, diskalakan ke satu layar.<br>Produksi: pose utama AI, interpolasi bentuk dan gerak mesh, VFX prosedural. Bukan 236 pose gambar tangan independen. Deskripsi skill adalah spesifikasi desain; aturan gameplay mengikuti engine pertarungan.</footer>
+</main></div>
+<script>
+'use strict';
+const $ = id => document.getElementById(id), ctx = $('canvas').getContext('2d');
+const state = { catalog: null, hero: null, manifest: null, animation: 'idle', image: null, effect: null, frame: 0, elapsed: 0, playing: true, last: 0, generation: 0, errors: [] };
+const labels = { idle:'Idle', run:'Run', attack:'Attack biasa', defend:'Defend', hurt:'Hurt', stun:'Stun', confused:'Confused', victory:'Victory', dead:'Dead', skill1:'Skill 1', skill2:'Skill 2', ultima1:'Ultimate 1', ultima2:'Ultimate 2' };
+async function loadImage(url) { const image = new Image(); image.src = url; await image.decode(); return image; }
+function failure(error) { state.errors.push(String(error)); $('error').textContent = 'Gagal memuat aset: ' + error.message; console.error(error); }
+async function chooseHero(sprite) {
+  const token = ++state.generation;
+  const hero = state.catalog.heroes.find(h => h.sprite === sprite);
+  const response = await fetch(hero.manifest);
+  if (!response.ok) throw new Error('Manifest ' + sprite);
+  const manifest = await response.json();
+  if (token !== state.generation) return;
+  state.hero = hero; state.manifest = manifest;
+  $('title').textContent = hero.name;
+  document.querySelectorAll('.hero').forEach(b => b.classList.toggle('active', b.dataset.sprite === sprite));
+  await chooseAnimation(state.animation);
+}
+async function chooseAnimation(anim) {
+  const token = ++state.generation, hero = state.hero, manifest = state.manifest;
+  state.animation = anim; state.image = null; state.effect = null; state.elapsed = 0; state.frame = 0;
+  const spec = manifest.animations[anim];
+  $('animation').value = anim; $('frame').max = spec.frameCount - 1; $('frame').value = 0;
+  $('meta').textContent = `${spec.frameCount} FRAME · ${(1000 / spec.frameMs).toFixed(1)} FPS`;
+  $('stageLabel').textContent = anim.toUpperCase();
+  document.querySelectorAll('#chips button').forEach(b => b.classList.toggle('active', b.dataset.anim === anim));
+  const ability = manifest.abilities.find(a => a.animation === anim);
+  $('abilityName').textContent = ability ? ability.name : `${labels[anim]} — ${hero.name}`;
+  $('abilityText').textContent = ability ? ability.description : `${spec.frameCount} frame · ${spec.columns} × ${spec.rows} atlas · ${spec.frameWidth} × ${spec.frameHeight} px per frame${spec.loop ? ' · loop' : spec.holdLast ? ' · tahan frame terakhir' : ' · putar ulang untuk pemeriksaan'}.`;
+  const [image, effect] = await Promise.all([loadImage(`${hero.sprite}/${spec.file}`), manifest.effects[anim] ? loadImage(`${hero.sprite}/${manifest.effects[anim].file}`) : Promise.resolve(null)]);
+  if (token !== state.generation) return;
+  state.image = image; state.effect = effect; $('error').textContent = ''; draw();
+}
+function cell(image, spec, frame, x, y, w, h) {
+  ctx.drawImage(image, frame % spec.columns * spec.frameWidth, Math.floor(frame / spec.columns) * spec.frameHeight, spec.frameWidth, spec.frameHeight, x, y, w, h);
+}
+function draw() {
+  ctx.clearRect(0, 0, 960, 540);
+  if ($('background').value === 'checker') {
+    for (let y = 0; y < 540; y += 24) for (let x = 0; x < 960; x += 24) { ctx.fillStyle = (x / 24 + y / 24) % 2 ? '#293143' : '#202738'; ctx.fillRect(x, y, 24, 24); }
+  } else {
+    const g = ctx.createLinearGradient(0, 0, 0, 540); g.addColorStop(0, '#0a1428'); g.addColorStop(.7, '#152d43'); g.addColorStop(1, '#0a172b'); ctx.fillStyle = g; ctx.fillRect(0, 0, 960, 540);
+    ctx.fillStyle = '#1c3851'; ctx.beginPath(); ctx.moveTo(0, 340); ctx.lineTo(120, 209); ctx.lineTo(270, 325); ctx.lineTo(412, 222); ctx.lineTo(576, 332); ctx.lineTo(758, 193); ctx.lineTo(960, 333); ctx.lineTo(960, 540); ctx.lineTo(0, 540); ctx.fill();
+    const floor = ctx.createLinearGradient(0, 370, 0, 540); floor.addColorStop(0, '#172c40'); floor.addColorStop(1, '#0c192a'); ctx.fillStyle = floor; ctx.fillRect(0, 378, 960, 162);
+    ctx.strokeStyle = '#94b8d21b'; ctx.lineWidth = 1; for (let k = 0; k < 14; k++) { ctx.beginPath(); ctx.moveTo(480 + (k - 7) * 36, 378); ctx.lineTo(480 + (k - 7) * 155, 540); ctx.stroke(); }
+    ctx.strokeStyle = '#a6d4ef26'; ctx.beginPath(); ctx.ellipse(480, 456, 361, 55, 0, 0, Math.PI * 2); ctx.stroke();
+  }
+  if (!state.image || !state.manifest) return;
+  const spec = state.manifest.animations[state.animation], frame = state.frame;
+  ctx.fillStyle = '#00000066'; ctx.beginPath(); ctx.ellipse(400, 462, 94, 13, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.save(); if ($('mirror').checked) { ctx.translate(960, 0); ctx.scale(-1, 1); }
+  cell(state.image, spec, frame, 260, 108, 280, 374);
+  if ($('effects').checked && state.effect) cell(state.effect, state.manifest.effects[state.animation], frame, 0, 0, 960, 540);
+  ctx.restore();
+  $('frameBadge').textContent = `FRAME ${String(frame + 1).padStart(2, '0')} / ${spec.frameCount}`;
+  $('frameCount').textContent = `${frame + 1} / ${spec.frameCount}`; $('frame').value = frame;
+}
+function tick(now) {
+  const delta = state.last ? Math.min(now - state.last, 100) : 0; state.last = now;
+  if (state.playing && state.image) { const spec = state.manifest.animations[state.animation]; state.elapsed += delta * Number($('speed').value); const n = Math.floor(state.elapsed / spec.frameMs); state.frame = n % spec.frameCount; }
+  draw(); requestAnimationFrame(tick);
+}
+$('play').addEventListener('click', () => { state.playing = !state.playing; $('play').textContent = state.playing ? 'Jeda' : 'Putar'; });
+$('animation').addEventListener('change', () => chooseAnimation($('animation').value).catch(failure));
+$('frame').addEventListener('input', () => { state.playing = false; $('play').textContent = 'Putar'; state.frame = Number($('frame').value); state.elapsed = state.frame * state.manifest.animations[state.animation].frameMs; draw(); });
+for (const id of ['effects','mirror','background']) $(id).addEventListener('change', draw);
+async function init() {
+  const response = await fetch('catalog.json'); if (!response.ok) throw new Error('catalog.json'); state.catalog = await response.json();
+  for (const hero of state.catalog.heroes) {
+    const button = document.createElement('button'); button.className = 'hero'; button.dataset.sprite = hero.sprite;
+    const image = document.createElement('img'); image.src = hero.portrait; image.alt = ''; const span = document.createElement('span'); span.textContent = hero.name; const small = document.createElement('small'); small.textContent = '236 FRAME · 2 ULTIMATE'; span.append(small); button.append(image, span); button.addEventListener('click', () => chooseHero(hero.sprite).catch(failure)); $('heroes').append(button);
+  }
+  for (const [anim, label] of Object.entries(labels)) { const option = document.createElement('option'); option.value = anim; option.textContent = label; $('animation').append(option); const button = document.createElement('button'); button.textContent = label; button.dataset.anim = anim; button.addEventListener('click', () => chooseAnimation(anim).catch(failure)); $('chips').append(button); }
+  await chooseHero('gatotkaca'); requestAnimationFrame(tick);
+}
+window.characterStudio = { state, chooseHero, chooseAnimation, draw };
+init().catch(failure);
+</script>
+</body></html>

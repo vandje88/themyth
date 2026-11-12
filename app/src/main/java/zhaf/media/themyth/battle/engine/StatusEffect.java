@@ -16,6 +16,14 @@ public final class StatusEffect {
     }
 
     public boolean isDot() {
-        return type == StatusType.BURN || type == StatusType.BLEED;
+        return type == StatusType.BURN || type == StatusType.BLEED
+                || type == StatusType.CURSE;
+    }
+
+    public boolean isBuff() {
+        return type == StatusType.ATK_UP || type == StatusType.DEF_UP
+                || type == StatusType.SPD_UP || type == StatusType.EVADE_UP
+                || type == StatusType.CRIT_UP || type == StatusType.RES_UP
+                || type == StatusType.REFLECT;
     }
 }

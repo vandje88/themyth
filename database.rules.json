@@ -182,6 +182,21 @@
           "claims": {
             "$key": { ".validate": "newData.val() === true" }
           },
+          "events": {
+            "$eventId": {
+              "coin": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 999999" },
+              "progress": {
+                "$missionId": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000" }
+              },
+              "claims": {
+                "$missionId": { ".validate": "newData.val() === true" }
+              },
+              "redeemed": {
+                "$rewardId": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 999" }
+              },
+              "$other": { ".validate": true }
+            }
+          },
           "$other": { ".validate": true }
         },
         "$other": { ".validate": true }

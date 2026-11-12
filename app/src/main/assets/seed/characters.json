@@ -162,6 +162,78 @@
       "element": "lightning",
       "role": "tank",
       "rarity": "mythic"
+    },
+    {
+      "id": "prabu_siliwangi",
+      "name": "Prabu Siliwangi",
+      "title": "Wujud Maung Pajajaran",
+      "element": "earth",
+      "role": "fighter",
+      "rarity": "legendary",
+      "sprite": "prabusiliwangi"
+    },
+    {
+      "id": "si_pitung",
+      "name": "Si Pitung",
+      "title": "Jagoan Rawa Belong",
+      "element": "wind",
+      "role": "assassin",
+      "rarity": "epic",
+      "sprite": "sipitung"
+    },
+    {
+      "id": "lutung_kasarung",
+      "name": "Lutung Kasarung",
+      "title": "Guru Minda",
+      "element": "earth",
+      "role": "support",
+      "rarity": "epic",
+      "sprite": "lutungkasarung"
+    },
+    {
+      "id": "calon_arang",
+      "name": "Calon Arang",
+      "title": "Ratu Leak",
+      "element": "fire",
+      "role": "mage",
+      "rarity": "legendary",
+      "sprite": "calonarang"
+    },
+    {
+      "id": "ken_arok",
+      "name": "Ken Arok",
+      "title": "Keris Mpu Gandring",
+      "element": "fire",
+      "role": "assassin",
+      "rarity": "legendary",
+      "sprite": "kenarok"
+    },
+    {
+      "id": "roro_mendut",
+      "name": "Roro Mendut",
+      "title": "Pesona Rok Cita",
+      "element": "wind",
+      "role": "mage",
+      "rarity": "epic",
+      "sprite": "roromendut"
+    },
+    {
+      "id": "damarwulan",
+      "name": "Damarwulan",
+      "title": "Ksatria Majapahit",
+      "element": "lightning",
+      "role": "fighter",
+      "rarity": "legendary",
+      "sprite": "damarwulan"
+    },
+    {
+      "id": "jaka_tarub",
+      "name": "Jaka Tarub",
+      "title": "Selendang Kahyangan",
+      "element": "wind",
+      "role": "support",
+      "rarity": "epic",
+      "sprite": "jakatarub"
     }
   ]
 }
